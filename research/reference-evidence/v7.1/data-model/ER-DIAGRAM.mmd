@@ -1,0 +1,270 @@
+erDiagram
+  Account {
+    radio Monthly
+    radio Select_Plan
+    radio Selected
+    radio Subscribed
+    radio Yearly
+  }
+  Alert {
+    checkbox Asset_Past_Due_Alerts
+    checkbox Email_Alerts
+    text Lead_time_
+    checkbox Lease_Expiration_Alerts
+    checkbox Maintenance_Alerts
+    text Overdue_time_
+    checkbox Warranty_Expiration_Alerts
+  }
+  Asset {
+    checkbox Asset_Photo
+    checkbox Asset_Tag_ID
+    checkbox Assigned_to
+    checkbox Brand
+    checkbox Category
+    checkbox checkbox
+    checkbox Cost
+    checkbox Created_by
+    checkbox Date_Created
+    checkbox Department
+    checkbox Description
+    checkbox Event_Date
+    checkbox Event_Due_Date
+    checkbox Event_Notes
+    select_one iTakeList
+    checkbox Leased_to
+    checkbox Location
+    text MM_dd_yyyy
+    checkbox Model
+    radio rdb_hasInventory
+    checkbox Purchase_Date
+    checkbox Purchased_from
+    checkbox Relation
+    checkbox Reservation
+    search uSearch
+  }
+  Category {
+    text Name
+    checkbox Field
+    checkbox Field_All
+    select_one iTakeList
+  }
+  Company {
+    text Address
+    text Apt__Suite
+    text City
+    text Company
+    select_one Country
+    select_one Currency_Symbol
+    select_one Date_format
+    select_one Financial_Year_begins_on
+    select_one FinancialDate
+    radio No
+    select_one Organization_Type
+    text Postal_Code
+    text State
+    select_one Timezone
+    radio Yes
+  }
+  Contract {
+    checkbox Contract_is_for_software
+    url http___www_example_com
+    text MM_dd_yyyy
+    checkbox No_end_date
+    text United_States_Dollar
+  }
+  Department {
+    text Name
+    checkbox Field
+    checkbox Field_All
+    select_one iTakeList
+  }
+  Document {
+    search Search_Document
+  }
+  Event {
+    checkbox Action_by
+    checkbox Action_on
+    checkbox Address
+    checkbox Address1
+    checkbox Address2
+    text Amount
+    checkbox Apt____Suite
+    radio Ascending
+    checkbox matcheckboxes_39395313
+    checkbox asset_all
+    checkbox Asset_Photo
+    checkbox Asset_Tag_ID
+    checkbox Assigned_to
+    checkbox Brand
+    checkbox Category
+    checkbox Cell
+    checkbox Check_In_Action_by
+    checkbox Check_In_Action_on
+    checkbox Check_in_Notes
+    checkbox Check_Out_Action_by
+    checkbox Check_Out_Action_on
+    checkbox Check_out_Date
+    checkbox Check_out_Notes
+    checkbox City
+    checkbox Company
+  }
+  Group {
+    radio GroupId
+  }
+  Inventory {
+    radio No
+    radio Yes
+  }
+  Location {
+    checkbox Field
+    checkbox Field_All
+    select_one iTakeList
+    text Name
+    select_one SiteId
+    select_one siteSelectList
+  }
+  Person {
+    checkbox Created_by
+    select_one Department
+    email Email
+    text Employee_ID
+    select_one Location
+    text Name
+    textarea Notes
+    text Phone
+    search Search_Person___Employee
+    select_one Site
+    text Title
+  }
+  Report {
+    radio widget_row
+    radio ByCategory_Pie_sizeOption
+    radio widget_row
+    radio ByCategory_Pie_sizeOption
+    radio widget_row
+    radio widget_row
+    radio widget_row
+    checkbox Active
+    checkbox Address
+    radio All_Users
+    checkbox Amount
+    checkbox Apt____Suite
+    text Address2
+    radio Ascending
+    select_one Asset
+    checkbox Asset_Photo
+    checkbox Asset_Tag_ID
+    checkbox Assigned_to
+    checkbox AuditLinking
+    checkbox Audit_by
+    checkbox Audit_Name
+    checkbox Audited_to_Location
+    checkbox Audited_to_Site
+    checkbox hasAutoAssetTagId
+    checkbox Available_Funds
+  }
+  Site {
+    text Address1
+    text Address2
+    text City
+    select_one CountryId
+    text Description
+    checkbox Field
+    checkbox Field_All
+    select_one iTakeList
+    text Zip
+    text Name
+    text State
+  }
+  User {
+    email Confirm_Email
+    select_one Date_Display_format
+    email Email
+    text First_Name
+    select_one Group_Name
+    text Last_Name
+    tel Phone
+    select_one Time_format
+    select_one Timezone
+    text Title
+  }
+  Alert }o--|| Asset : "Asset Past Due Alerts"
+  Asset }o--|| Category : "Category"
+  Asset }o--|| Department : "Department"
+  Asset }o--|| Location : "Location"
+  Asset }o--|| Person : "Assigned to"
+  Asset }o--|| Site : "Site"
+  Event }o--|| Asset : "Asset"
+  Event }o--|| Asset : "Asset All"
+  Event }o--|| Asset : "Asset Photo"
+  Event }o--|| Asset : "Asset Tag ID"
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is broken."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked in."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked out."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is dispose."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is donate."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is found."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease return."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lost."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is repair."
+  Event }o--|| Asset : "Display a signature pad for the individual to sign when an asset is sell."
+  Event }o--|| Category : "Category"
+  Event }o--|| Department : "Department"
+  Event }o--|| Department : "Field Optionally change the department"
+  Event }o--|| Location : "Location"
+  Event }o--|| Location : "Location Created by"
+  Event }o--|| Person : "Assigned to"
+  Event }o--|| Person : "Person"
+  Event }o--|| Person : "Person Created by"
+  Event }o--|| Site : "Field Optionally change site or location"
+  Event }o--|| Site : "Site"
+  Event }o--|| Site : "Site / Location"
+  Event }o--|| Site : "Site Created by"
+  Location }o--|| Site : "Site"
+  Person }o--|| Department : "Department"
+  Person }o--|| Location : "Location"
+  Person }o--|| Site : "Site"
+  Report }o--|| Asset : "Asset"
+  Report }o--|| Asset : "Asset Photo"
+  Report }o--|| Asset : "Asset Tag ID"
+  Report }o--|| Asset : "Automatic asset tags"
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is broken."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked in."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked out."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is found."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease return."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lost."
+  Report }o--|| Asset : "Display a signature pad for the individual to sign when an asset is repair."
+  Report }o--|| Category : "Category"
+  Report }o--|| Category : "Category:"
+  Report }o--|| Department : "Department"
+  Report }o--|| Department : "Field Optionally change the department"
+  Report }o--|| Location : "Audited to Location"
+  Report }o--|| Location : "Location"
+  Report }o--|| Location : "Location Created by"
+  Report }o--|| Location : "Original Location"
+  Report }o--|| Person : "Assigned to"
+  Report }o--|| Person : "Person"
+  Report }o--|| Site : "Audited to Site"
+  Report }o--|| Site : "Field Optionally change site or location"
+  Report }o--|| Site : "Original Site"
+  Report }o--|| Site : "Site"
+  Report }o--|| Site : "Site / Location"
+  Report }o--|| Site : "Site Created by"
+  UnclassifiedForm }o--|| Asset : "action-Addan Asset"
+  UnclassifiedForm }o--|| Asset : "action-Buy Asset Tags"
+  UnclassifiedForm }o--|| Asset : "action-Edit Asset"
+  UnclassifiedForm }o--|| Asset : "Asset"
+  UnclassifiedForm }o--|| Asset : "Asset All"
+  UnclassifiedForm }o--|| Asset : "Asset Photo"
+  UnclassifiedForm }o--|| Asset : "Asset Tag ID"
+  UnclassifiedForm }o--|| Asset : "Automatic asset tags"
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is broken."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked in."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is checked out."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is found."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease return."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lease."
+  UnclassifiedForm }o--|| Asset : "Display a signature pad for the individual to sign when an asset is lost."

@@ -1,0 +1,33 @@
+# Technical architecture reconstruction
+
+## Observed delivery architecture
+
+- Browser-rendered, route-oriented web application behind Cloudflare.
+- Evidence indicates an ASP.NET-style server-rendered/MVC application with antiforgery controls.
+- jQuery and Bootstrap-era client libraries enhance server-rendered forms, tables, selectors, dialogs and notifications.
+- Application behavior is exposed through page routes plus background requests recorded in the endpoint catalog.
+- Authentication is session-cookie based in the captured browser behavior.
+
+## Observed libraries and external services
+
+- **ASP.NET Core / MVC — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Bootstrap — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; www.assettiger.com/scripts/lib/bootstrap-select.min.js; www.assettiger.com/content/themes/v3/css/bootstrap-select.min.css Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Cloudflare — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **DataTables — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; www.assettiger.com/scripts/lib/datatables/dataTables.min.js; www.assettiger.com/Scripts/lib/datatables/dataTables.min.css Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Fancybox — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Google Analytics/Tag Manager — OBSERVED.** www.googletagmanager.com/gtm.js Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`
+- **Google Tag Manager / Analytics — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/states/AUTO-00001.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/states/AUTO-00001.json`
+- **jQuery — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; www.assettiger.com/scripts/jquery.unobtrusive-ajax.js; www.assettiger.com/scripts/jquery.validate.js Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Select2 — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/architecture/TECHNOLOGY-CONFIDENCE.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`
+- **Toastr — OBSERVED.** signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json; signature matched in automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json; signature matched in checkpoint.json Evidence: `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/manifests/checkpoint.json`, `automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/network/NORMALIZED-CONTRACTS.json`, `checkpoint.json`
+
+## Recommended target architecture for the rebuild
+
+- Web frontend with responsive component system and accessibility testing.
+- Versioned API/service layer enforcing tenant scope and authorization on every operation.
+- Relational database for assets, people, taxonomy, events, contracts, permissions and audit history.
+- Object storage for documents, images, imports and exports.
+- Background workers for imports, reports, alerts, reminders and label generation.
+- Central audit log, structured observability, encrypted secrets and automated backups.
+
+This target is a design recommendation, not a claim about AssetTiger's private backend. Exact source code, physical schema, deployment topology, queues, caches and private services are not observable from the collected browser evidence.

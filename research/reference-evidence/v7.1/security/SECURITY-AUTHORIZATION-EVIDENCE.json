@@ -1,0 +1,249 @@
+{
+  "cookies": [
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": ".AspNetCore.Antiforgery.E-S1V50guOM",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Strict",
+        "persistence": "session"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "__cf_bm",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "None",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_clck",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "g_state",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "MAT",
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": ".AspNetCore.Session",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "None",
+        "persistence": "session"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_gcl_au",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_fw_crm_v",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_ga",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_clsk",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_ga_4BVZ6TG2LQ",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "first_session",
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_uetsid",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "cookie-control",
+      "classification": "OBSERVED",
+      "detail": {
+        "name": "_uetvid",
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax",
+        "persistence": "persistent"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    }
+  ],
+  "csrf": [
+    {
+      "type": "csrf-control",
+      "classification": "OBSERVED",
+      "detail": "__RequestVerificationToken",
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/states/RULE-0016.json"
+    }
+  ],
+  "loggedOut": [
+    {
+      "type": "logged-out-route-behavior",
+      "classification": "OBSERVED",
+      "detail": {
+        "route": "/dashboard",
+        "status": 200,
+        "finalPath": "/login",
+        "title": "Sign In - AssetTiger"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "logged-out-route-behavior",
+      "classification": "OBSERVED",
+      "detail": {
+        "route": "/assets",
+        "status": 200,
+        "finalPath": "/login",
+        "title": "Sign In - AssetTiger"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "logged-out-route-behavior",
+      "classification": "OBSERVED",
+      "detail": {
+        "route": "/users",
+        "status": 200,
+        "finalPath": "/login",
+        "title": "Sign In - AssetTiger"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "logged-out-route-behavior",
+      "classification": "OBSERVED",
+      "detail": {
+        "route": "/groupmanager",
+        "status": 200,
+        "finalPath": "/login",
+        "title": "Sign In - AssetTiger"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    },
+    {
+      "type": "logged-out-route-behavior",
+      "classification": "OBSERVED",
+      "detail": {
+        "route": "/reports/customassets",
+        "status": 200,
+        "finalPath": "/login",
+        "title": "Sign In - AssetTiger"
+      },
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    }
+  ],
+  "roleEvidence": [
+    {
+      "role": "secondary-role",
+      "status": "captured",
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-44-49-808Z/manifests/checkpoint.json"
+    },
+    {
+      "role": "secondary-role",
+      "status": "not-available",
+      "evidenceFile": "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/manifests/checkpoint.json"
+    }
+  ]
+}

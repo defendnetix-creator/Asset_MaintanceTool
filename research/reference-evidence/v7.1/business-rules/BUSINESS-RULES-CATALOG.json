@@ -1,0 +1,2323 @@
+[
+  {
+    "id": "BR-0001",
+    "scope": "Alert",
+    "statement": "Lead time: has observed maximum length: 3.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00008.json"
+    ]
+  },
+  {
+    "id": "BR-0002",
+    "scope": "Alert",
+    "statement": "Overdue time: has observed maximum length: 3.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00008.json"
+    ]
+  },
+  {
+    "id": "BR-0003",
+    "scope": "Asset",
+    "statement": "Asset Tag ID has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0004",
+    "scope": "Asset",
+    "statement": "Brand has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0005",
+    "scope": "Asset",
+    "statement": "Description has observed maximum length: 1000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0006",
+    "scope": "Asset",
+    "statement": "Model has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0007",
+    "scope": "Asset",
+    "statement": "Purchased from has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0008",
+    "scope": "Asset",
+    "statement": "Serial No has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00081.json"
+    ]
+  },
+  {
+    "id": "BR-0009",
+    "scope": "Category",
+    "statement": "Category has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0010",
+    "scope": "Company",
+    "statement": "Address has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0011",
+    "scope": "Company",
+    "statement": "Apt./Suite has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0012",
+    "scope": "Company",
+    "statement": "City has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0013",
+    "scope": "Company",
+    "statement": "Company has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0014",
+    "scope": "Company",
+    "statement": "Postal Code has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0015",
+    "scope": "Company",
+    "statement": "State has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00091.json"
+    ]
+  },
+  {
+    "id": "BR-0016",
+    "scope": "Department",
+    "statement": "Department has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0017",
+    "scope": "duplicate-tag",
+    "statement": "Experiment result: accepted",
+    "classification": "OBSERVED",
+    "evidence": [
+      {
+        "id": "duplicate-tag",
+        "tag": "RECON-V64-20260813-289806-001",
+        "status": "accepted",
+        "beforeUrl": "https://www.assettiger.com/assets/detail/39401159",
+        "created": true,
+        "clientConstraints": [
+          {
+            "name": "hsearch",
+            "type": "search",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 1000,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "AssetTagId",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "PurchaseFrom",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 100,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Brand",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Model",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "SerialNo",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          }
+        ],
+        "fieldsFilled": [
+          "Description",
+          "Asset Tag ID",
+          "Purchase Date",
+          "Purchased from",
+          "Serial No"
+        ],
+        "afterUrl": "https://www.assettiger.com/assets",
+        "alerts": [
+          "× Another asset is being used by this Id."
+        ]
+      },
+      {
+        "id": "duplicate-tag",
+        "tag": "RECON-V64-20260813-516696-001",
+        "status": "accepted",
+        "beforeUrl": "https://www.assettiger.com/assets/detail/39401164",
+        "created": true,
+        "clientConstraints": [
+          {
+            "name": "hsearch",
+            "type": "search",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 1000,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "AssetTagId",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "PurchaseFrom",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 100,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Brand",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Model",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "SerialNo",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          }
+        ],
+        "fieldsFilled": [
+          "Description",
+          "Asset Tag ID",
+          "Purchase Date",
+          "Purchased from",
+          "Serial No"
+        ],
+        "afterUrl": "https://www.assettiger.com/assets",
+        "alerts": [
+          "× Another asset is being used by this Id."
+        ]
+      }
+    ],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-44-49-808Z/business-rules/BUSINESS-RULES.json",
+      "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0018",
+    "scope": "edit-created-asset",
+    "statement": "Experiment result: accepted-or-redirected",
+    "classification": "OBSERVED",
+    "evidence": [
+      {
+        "id": "edit-created-asset",
+        "tag": "RECON-V64-20260813-289806-001",
+        "status": "accepted-or-redirected"
+      },
+      {
+        "id": "edit-created-asset",
+        "tag": "RECON-V64-20260813-516696-001",
+        "status": "accepted-or-redirected"
+      }
+    ],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-44-49-808Z/business-rules/BUSINESS-RULES.json",
+      "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0019",
+    "scope": "Event",
+    "statement": "Amount has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0020",
+    "scope": "Event",
+    "statement": "Assigned to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00005.json"
+    ]
+  },
+  {
+    "id": "BR-0021",
+    "scope": "Event",
+    "statement": "Check-in Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00050.json"
+    ]
+  },
+  {
+    "id": "BR-0022",
+    "scope": "Event",
+    "statement": "Check-out Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00005.json"
+    ]
+  },
+  {
+    "id": "BR-0023",
+    "scope": "Event",
+    "statement": "Check-out Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00005.json"
+    ]
+  },
+  {
+    "id": "BR-0024",
+    "scope": "Event",
+    "statement": "Date Broken has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00125.json"
+    ]
+  },
+  {
+    "id": "BR-0025",
+    "scope": "Event",
+    "statement": "Date Completed has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00124.json"
+    ]
+  },
+  {
+    "id": "BR-0026",
+    "scope": "Event",
+    "statement": "Date Disposed has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00109.json"
+    ]
+  },
+  {
+    "id": "BR-0027",
+    "scope": "Event",
+    "statement": "Date Donated has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00110.json"
+    ]
+  },
+  {
+    "id": "BR-0028",
+    "scope": "Event",
+    "statement": "Date Found has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00123.json"
+    ]
+  },
+  {
+    "id": "BR-0029",
+    "scope": "Event",
+    "statement": "Date Lost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00122.json"
+    ]
+  },
+  {
+    "id": "BR-0030",
+    "scope": "Event",
+    "statement": "Deductible has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00110.json"
+    ]
+  },
+  {
+    "id": "BR-0031",
+    "scope": "Event",
+    "statement": "Dispose to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00109.json"
+    ]
+  },
+  {
+    "id": "BR-0032",
+    "scope": "Event",
+    "statement": "Donate to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00110.json"
+    ]
+  },
+  {
+    "id": "BR-0033",
+    "scope": "Event",
+    "statement": "Donate Value has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00110.json"
+    ]
+  },
+  {
+    "id": "BR-0034",
+    "scope": "Event",
+    "statement": "Due date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00005.json"
+    ]
+  },
+  {
+    "id": "BR-0035",
+    "scope": "Event",
+    "statement": "Event date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0036",
+    "scope": "Event",
+    "statement": "Event Description has observed maximum length: 1000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0037",
+    "scope": "Event",
+    "statement": "Event Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0038",
+    "scope": "Event",
+    "statement": "Lease Begins has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00007.json"
+    ]
+  },
+  {
+    "id": "BR-0039",
+    "scope": "Event",
+    "statement": "Lease Expires has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00007.json"
+    ]
+  },
+  {
+    "id": "BR-0040",
+    "scope": "Event",
+    "statement": "Lease Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00007.json"
+    ]
+  },
+  {
+    "id": "BR-0041",
+    "scope": "Event",
+    "statement": "Lease return Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00060.json"
+    ]
+  },
+  {
+    "id": "BR-0042",
+    "scope": "Event",
+    "statement": "Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00005.json"
+    ]
+  },
+  {
+    "id": "BR-0043",
+    "scope": "Event",
+    "statement": "Question has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0044",
+    "scope": "Event",
+    "statement": "Repair Cost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00124.json"
+    ]
+  },
+  {
+    "id": "BR-0045",
+    "scope": "Event",
+    "statement": "Return Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00050.json"
+    ]
+  },
+  {
+    "id": "BR-0046",
+    "scope": "Event",
+    "statement": "Sale amount has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00111.json"
+    ]
+  },
+  {
+    "id": "BR-0047",
+    "scope": "Event",
+    "statement": "Sale Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00111.json"
+    ]
+  },
+  {
+    "id": "BR-0048",
+    "scope": "Event",
+    "statement": "Schedule Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00124.json"
+    ]
+  },
+  {
+    "id": "BR-0049",
+    "scope": "Event",
+    "statement": "Sold to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00111.json"
+    ]
+  },
+  {
+    "id": "BR-0050",
+    "scope": "Event",
+    "statement": "Text field has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00112.json"
+    ]
+  },
+  {
+    "id": "BR-0051",
+    "scope": "Location",
+    "statement": "Location has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0052",
+    "scope": "Person",
+    "statement": "Email has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0053",
+    "scope": "Person",
+    "statement": "Employee ID has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0054",
+    "scope": "Person",
+    "statement": "Name has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0055",
+    "scope": "Person",
+    "statement": "Notes has observed maximum length: 1000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0056",
+    "scope": "Person",
+    "statement": "Phone has observed maximum length: 20.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0057",
+    "scope": "Person",
+    "statement": "Title has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00077.json"
+    ]
+  },
+  {
+    "id": "BR-0058",
+    "scope": "Report",
+    "statement": "Address has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00022.json"
+    ]
+  },
+  {
+    "id": "BR-0059",
+    "scope": "Report",
+    "statement": "Apt./Suite has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00129-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0060",
+    "scope": "Report",
+    "statement": "Asset Tag ID has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0061",
+    "scope": "Report",
+    "statement": "Assigned to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0062",
+    "scope": "Report",
+    "statement": "Brand has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0063",
+    "scope": "Report",
+    "statement": "Check-in Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00231-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0064",
+    "scope": "Report",
+    "statement": "Check-out Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00223-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0065",
+    "scope": "Report",
+    "statement": "Check-out Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00223-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0066",
+    "scope": "Report",
+    "statement": "City has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00022.json"
+    ]
+  },
+  {
+    "id": "BR-0067",
+    "scope": "Report",
+    "statement": "Company has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00129-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0068",
+    "scope": "Report",
+    "statement": "Custom Date Range was read-only in at least one observed state.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00039.json"
+    ]
+  },
+  {
+    "id": "BR-0069",
+    "scope": "Report",
+    "statement": "Date Broken has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00286-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0070",
+    "scope": "Report",
+    "statement": "Date Completed has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00278-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0071",
+    "scope": "Report",
+    "statement": "Date Found has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00268-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0072",
+    "scope": "Report",
+    "statement": "Date Lost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00257-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0073",
+    "scope": "Report",
+    "statement": "Description has observed maximum length: 1000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0074",
+    "scope": "Report",
+    "statement": "Due date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00223-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0075",
+    "scope": "Report",
+    "statement": "First Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0076",
+    "scope": "Report",
+    "statement": "Last Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0077",
+    "scope": "Report",
+    "statement": "Lease Begins has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00238-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0078",
+    "scope": "Report",
+    "statement": "Lease Expires has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00238-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0079",
+    "scope": "Report",
+    "statement": "Lease Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00238-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0080",
+    "scope": "Report",
+    "statement": "Lease return Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00248-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0081",
+    "scope": "Report",
+    "statement": "Message has observed maximum length: 5000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0082",
+    "scope": "Report",
+    "statement": "Model has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0083",
+    "scope": "Report",
+    "statement": "Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00028.json"
+    ]
+  },
+  {
+    "id": "BR-0084",
+    "scope": "Report",
+    "statement": "Postal Code has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00022.json"
+    ]
+  },
+  {
+    "id": "BR-0085",
+    "scope": "Report",
+    "statement": "Purchased from has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0086",
+    "scope": "Report",
+    "statement": "Repair Cost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00278-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0087",
+    "scope": "Report",
+    "statement": "Return Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00231-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0088",
+    "scope": "Report",
+    "statement": "Schedule Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00278-action-Reports.json"
+    ]
+  },
+  {
+    "id": "BR-0089",
+    "scope": "Report",
+    "statement": "Serial No has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00011.json"
+    ]
+  },
+  {
+    "id": "BR-0090",
+    "scope": "Report",
+    "statement": "State has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00022.json"
+    ]
+  },
+  {
+    "id": "BR-0091",
+    "scope": "Report",
+    "statement": "Url/Link has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0092",
+    "scope": "Report",
+    "statement": "Your email has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0093",
+    "scope": "Site",
+    "statement": "Address has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0094",
+    "scope": "Site",
+    "statement": "Apt. / Suite has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0095",
+    "scope": "Site",
+    "statement": "City has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0096",
+    "scope": "Site",
+    "statement": "Description has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0097",
+    "scope": "Site",
+    "statement": "Postal Code has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0098",
+    "scope": "Site",
+    "statement": "Site has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0099",
+    "scope": "Site",
+    "statement": "State has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "checkpoint.json"
+    ]
+  },
+  {
+    "id": "BR-0100",
+    "scope": "UnclassifiedForm",
+    "statement": "Address has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0101",
+    "scope": "UnclassifiedForm",
+    "statement": "Apt. / Suite has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00144-action-Add-New-Site.json"
+    ]
+  },
+  {
+    "id": "BR-0102",
+    "scope": "UnclassifiedForm",
+    "statement": "Apt./Suite has observed maximum length: 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0103",
+    "scope": "UnclassifiedForm",
+    "statement": "Asset Tag ID has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0104",
+    "scope": "UnclassifiedForm",
+    "statement": "AssetTagId has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0105",
+    "scope": "UnclassifiedForm",
+    "statement": "Assigned to has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00021-action-Setup-Columns.json"
+    ]
+  },
+  {
+    "id": "BR-0106",
+    "scope": "UnclassifiedForm",
+    "statement": "Brand has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0107",
+    "scope": "UnclassifiedForm",
+    "statement": "Category has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0108",
+    "scope": "UnclassifiedForm",
+    "statement": "Check-in Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00170-action-Setup-Check-in-.json"
+    ]
+  },
+  {
+    "id": "BR-0109",
+    "scope": "UnclassifiedForm",
+    "statement": "Check-out Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00168-action-Setup-Check-out-.json"
+    ]
+  },
+  {
+    "id": "BR-0110",
+    "scope": "UnclassifiedForm",
+    "statement": "Check-out Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00168-action-Setup-Check-out-.json"
+    ]
+  },
+  {
+    "id": "BR-0111",
+    "scope": "UnclassifiedForm",
+    "statement": "City has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0112",
+    "scope": "UnclassifiedForm",
+    "statement": "Company has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0113",
+    "scope": "UnclassifiedForm",
+    "statement": "Confirm Email has observed maximum length: 60.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0114",
+    "scope": "UnclassifiedForm",
+    "statement": "Date Broken has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00285-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0115",
+    "scope": "UnclassifiedForm",
+    "statement": "Date Completed has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00277-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0116",
+    "scope": "UnclassifiedForm",
+    "statement": "Date Found has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00267-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0117",
+    "scope": "UnclassifiedForm",
+    "statement": "Date Lost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00256-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0118",
+    "scope": "UnclassifiedForm",
+    "statement": "Department has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0119",
+    "scope": "UnclassifiedForm",
+    "statement": "Description has observed maximum length: 1000 or 500.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0120",
+    "scope": "UnclassifiedForm",
+    "statement": "Due date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00168-action-Setup-Check-out-.json"
+    ]
+  },
+  {
+    "id": "BR-0121",
+    "scope": "UnclassifiedForm",
+    "statement": "Email has observed maximum length: 60.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0122",
+    "scope": "UnclassifiedForm",
+    "statement": "First Name has an observed client-side validation pattern.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0123",
+    "scope": "UnclassifiedForm",
+    "statement": "First Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0124",
+    "scope": "UnclassifiedForm",
+    "statement": "hsearch has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0125",
+    "scope": "UnclassifiedForm",
+    "statement": "Last Name has an observed client-side validation pattern.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0126",
+    "scope": "UnclassifiedForm",
+    "statement": "Last Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0127",
+    "scope": "UnclassifiedForm",
+    "statement": "Lease Begins has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00237-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0128",
+    "scope": "UnclassifiedForm",
+    "statement": "Lease Expires has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00237-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0129",
+    "scope": "UnclassifiedForm",
+    "statement": "Lease Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00237-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0130",
+    "scope": "UnclassifiedForm",
+    "statement": "Lease return Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00247-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0131",
+    "scope": "UnclassifiedForm",
+    "statement": "Location has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0132",
+    "scope": "UnclassifiedForm",
+    "statement": "Message has observed maximum length: 5000.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00187-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0133",
+    "scope": "UnclassifiedForm",
+    "statement": "Model has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0134",
+    "scope": "UnclassifiedForm",
+    "statement": "Notes has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00256-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0135",
+    "scope": "UnclassifiedForm",
+    "statement": "Phone has observed maximum length: 20.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0136",
+    "scope": "UnclassifiedForm",
+    "statement": "Postal Code has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0137",
+    "scope": "UnclassifiedForm",
+    "statement": "Purchased from has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0138",
+    "scope": "UnclassifiedForm",
+    "statement": "PurchaseFrom has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0139",
+    "scope": "UnclassifiedForm",
+    "statement": "Repair Cost has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00277-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0140",
+    "scope": "UnclassifiedForm",
+    "statement": "Return Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00170-action-Setup-Check-in-.json"
+    ]
+  },
+  {
+    "id": "BR-0141",
+    "scope": "UnclassifiedForm",
+    "statement": "Schedule Date has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00277-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0142",
+    "scope": "UnclassifiedForm",
+    "statement": "Serial No has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0143",
+    "scope": "UnclassifiedForm",
+    "statement": "SerialNo has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0144",
+    "scope": "UnclassifiedForm",
+    "statement": "Site has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00006-action-Addan-Asset.json"
+    ]
+  },
+  {
+    "id": "BR-0145",
+    "scope": "UnclassifiedForm",
+    "statement": "State has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00127-route-https-www-assettiger-com-company.json"
+    ]
+  },
+  {
+    "id": "BR-0146",
+    "scope": "UnclassifiedForm",
+    "statement": "Title has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00001.json"
+    ]
+  },
+  {
+    "id": "BR-0147",
+    "scope": "UnclassifiedForm",
+    "statement": "Url/Link has observed maximum length: 100.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00187-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0148",
+    "scope": "UnclassifiedForm",
+    "statement": "Your email has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "forms/00187-action-Assets.json"
+    ]
+  },
+  {
+    "id": "BR-0149",
+    "scope": "User",
+    "statement": "Confirm Email has observed maximum length: 60.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0150",
+    "scope": "User",
+    "statement": "Email has observed maximum length: 60.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0151",
+    "scope": "User",
+    "statement": "First Name has an observed client-side validation pattern.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0152",
+    "scope": "User",
+    "statement": "First Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0153",
+    "scope": "User",
+    "statement": "Last Name has an observed client-side validation pattern.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0154",
+    "scope": "User",
+    "statement": "Last Name has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0155",
+    "scope": "User",
+    "statement": "Phone has observed maximum length: 20.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0156",
+    "scope": "User",
+    "statement": "Title has observed maximum length: 50.",
+    "classification": "OBSERVED",
+    "evidence": [],
+    "evidenceFiles": [
+      "automatic-gap-audit-v6.3-2026-08-13T07-37-33-328Z/forms/AUTO-00072.json"
+    ]
+  },
+  {
+    "id": "BR-0157",
+    "scope": "valid-create",
+    "statement": "Experiment result: accepted",
+    "classification": "OBSERVED",
+    "evidence": [
+      {
+        "id": "valid-create",
+        "tag": "RECON-V64-20260813-289806-001",
+        "status": "accepted",
+        "beforeUrl": "https://www.assettiger.com/assets/add",
+        "created": true,
+        "clientConstraints": [
+          {
+            "name": "hsearch",
+            "type": "search",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 1000,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "AssetTagId",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "PurchaseFrom",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 100,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Brand",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Model",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "SerialNo",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          }
+        ],
+        "fieldsFilled": [
+          "Description",
+          "Asset Tag ID",
+          "Purchase Date",
+          "Purchased from",
+          "Serial No"
+        ],
+        "afterUrl": "https://www.assettiger.com/assets/detail/39401159",
+        "alerts": [
+          "× Asset added successfully."
+        ]
+      },
+      {
+        "id": "valid-create",
+        "tag": "RECON-V64-20260813-516696-001",
+        "status": "accepted",
+        "beforeUrl": "https://www.assettiger.com/assets/add",
+        "created": true,
+        "clientConstraints": [
+          {
+            "name": "hsearch",
+            "type": "search",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 1000,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "AssetTagId",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "PurchaseFrom",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 100,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Brand",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Model",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "SerialNo",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          }
+        ],
+        "fieldsFilled": [
+          "Description",
+          "Asset Tag ID",
+          "Purchase Date",
+          "Purchased from",
+          "Serial No"
+        ],
+        "afterUrl": "https://www.assettiger.com/assets/detail/39401164",
+        "alerts": [
+          "× Asset added successfully."
+        ]
+      }
+    ],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-44-49-808Z/business-rules/BUSINESS-RULES.json",
+      "controlled-rules-profiler-v6.4-2026-08-13T09-48-36-699Z/business-rules/BUSINESS-RULES.json"
+    ]
+  },
+  {
+    "id": "BR-0158",
+    "scope": "valid-create",
+    "statement": "Experiment result: started",
+    "classification": "OBSERVED",
+    "evidence": [
+      {
+        "id": "valid-create",
+        "tag": "RECON-V64-20260813-808883-001",
+        "status": "started",
+        "beforeUrl": "https://www.assettiger.com/assets/add",
+        "created": false,
+        "clientConstraints": [
+          {
+            "name": "hsearch",
+            "type": "search",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 1000,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "AssetTagId",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "PurchaseFrom",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 100,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Brand",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "Model",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          },
+          {
+            "name": "SerialNo",
+            "type": "text",
+            "required": false,
+            "pattern": "",
+            "maxLength": 50,
+            "min": "",
+            "max": "",
+            "emptyValidity": {
+              "valid": true,
+              "valueMissing": false,
+              "typeMismatch": false,
+              "patternMismatch": false,
+              "tooLong": false,
+              "rangeOverflow": false,
+              "rangeUnderflow": false
+            }
+          }
+        ],
+        "fieldsFilled": [
+          "Description",
+          "Asset Tag ID",
+          "Serial No"
+        ]
+      }
+    ],
+    "evidenceFiles": [
+      "controlled-rules-profiler-v6.4-2026-08-13T09-36-48-885Z/business-rules/BUSINESS-RULES.json"
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+{
+  "version": "7.0.0",
+  "mode": "OFFLINE_SINGLE_PASS_SYNTHESIS",
+  "startedAt": "2026-08-13T10:38:31.358Z",
+  "completedAt": "2026-08-13T10:38:34.536Z",
+  "sourceRootName": "AssetTiger-Reverse-Engineering-2026-08-12T17-41-46-602Z",
+  "limits": {
+    "MAX_FILES": 25000,
+    "MAX_TEXT_BYTES": 367001600,
+    "MAX_SINGLE_TEXT_FILE": 31457280,
+    "MAX_RUNTIME_MS": 600000
+  },
+  "counts": {
+    "files": 1544,
+    "routes": 149,
+    "screens": 285,
+    "forms": 258,
+    "tables": 87,
+    "entities": 17,
+    "relationships": 96,
+    "endpoints": 394,
+    "applicationEndpoints": 167,
+    "rules": 158,
+    "technologies": 15,
+    "securitySignals": 20,
+    "parseFailures": 0
+  },
+  "outputFiles": [
+    "00-START-HERE.md",
+    "01-EVIDENCE-INVENTORY.json",
+    "02-COVERAGE-AND-GAPS.md",
+    "ai-context/AI-AGENT-MASTER-CONTEXT.md",
+    "ai-context/IMPLEMENTATION-BACKLOG.md",
+    "ai-context/REBUILD-ACCEPTANCE-CRITERIA.md",
+    "architecture/TECHNICAL-ARCHITECTURE.md",
+    "architecture/TECHNOLOGY-AND-SAAS-EVIDENCE.json",
+    "business-rules/BUSINESS-RULES-CATALOG.json",
+    "business-rules/BUSINESS-RULES-CATALOG.md",
+    "contracts/ENDPOINT-CATALOG.csv",
+    "contracts/ENDPOINT-CATALOG.json",
+    "data-model/ER-DIAGRAM.mmd",
+    "data-model/LOGICAL-DATA-MODEL.json",
+    "product/FEATURE-MODULES.md",
+    "product/SCREEN-ROUTE-CATALOG.json",
+    "security/SECURITY-AUTHORIZATION-EVIDENCE.json",
+    "security/SECURITY-AUTHORIZATION-MODEL.md"
+  ]
+}
