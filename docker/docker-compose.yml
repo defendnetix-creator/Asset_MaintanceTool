@@ -1,0 +1,297 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: assetmt-postgres
+    environment:
+      POSTGRES_DB: assetmt
+      POSTGRES_USER: assetmt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-rls.sql:/docker-entrypoint-initdb.d/init-rls.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetmt -d assetmt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - assetmt-internal
+
+  # Redis for caching and queues
+  redis:
+    image: redis:7-alpine
+    container_name: assetmt-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - assetmt-internal
+
+  # MinIO for object storage
+  minio:
+    image: minio/minio:latest
+    container_name: assetmt-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - assetmt-internal
+
+  # ClamAV for malware scanning
+  clamav:
+    image: clamav/clamav:latest
+    container_name: assetmt-clamav
+    volumes:
+      - clamav_db:/var/lib/clamav
+    ports:
+      - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - assetmt-internal
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: assetmt-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://assetmt:${POSTGRES_PASSWORD}@postgres:5432/assetmt?schema=public
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_USE_SSL: "false"
+      MINIO_BUCKET: assets
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_REFRESH_PRIVATE_KEY: ${JWT_REFRESH_PRIVATE_KEY}
+      JWT_REFRESH_PUBLIC_KEY: ${JWT_REFRESH_PUBLIC_KEY}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: debug
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - assetmt-internal
+      - assetmt-frontend
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: assetmt-frontend
+    environment:
+      VITE_API_URL: http://localhost:3001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - assetmt-frontend
+
+  # Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    container_name: assetmt-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - assetmt-frontend
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: assetmt-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: assetmt-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: assetmt-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+  # Promtail for log shipping
+  promtail:
+    image: grafana/promtail:latest
+    container_name: assetmt-promtail
+    volumes:
+      - ./monitoring/promtail/config.yaml:/etc/promtail/config.yaml:ro
+      - /var/log:/var/log:ro
+      - ./backend/logs:/app/logs:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+  # Alertmanager for alerting
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: assetmt-alertmanager
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+  # Node Exporter for host metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: assetmt-node-exporter
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: assetmt-cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - assetmt-monitoring
+
+networks:
+  assetmt-internal:
+    driver: bridge
+    internal: false
+  assetmt-frontend:
+    driver: bridge
+  assetmt-monitoring:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  clamav_db:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  alertmanager_data:

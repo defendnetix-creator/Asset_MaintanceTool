@@ -1,0 +1,122 @@
+{
+  "acme_email": "admin@assetmt.local",
+  "admin": {
+    "listen": "localhost:2019"
+  },
+  "apps": {
+    "http": {
+      "servers": {
+        "assetmt": {
+          "listen": [":80", ":443"],
+          "routes": [
+            {
+              "match": [
+                {
+                  "host": ["assetmt.local", "www.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "frontend:3000"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": ["api.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "backend:3001"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": ["grafana.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "grafana:3000"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": ["prometheus.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "prometheus:9090"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": ["minio.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "minio:9000"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": ["minio-console.assetmt.local"]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "minio:9001"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "automatic_https": {
+            "disable": true
+          }
+        }
+      }
+    }
+  }
+}
