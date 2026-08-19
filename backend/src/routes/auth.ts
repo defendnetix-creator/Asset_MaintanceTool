@@ -133,11 +133,11 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Generate tokens
     const accessToken = app.jwt.sign(
-      { userId: user.id, tenantId: user.tenantId, role: user.role },
+      { userId: user.id, tenantId: user.tenant_id, role: user.role },
       { expiresIn: '15m' }
     );
 
-    const refreshToken = app.refreshJwt.sign(
+    const refreshToken = app.jwt.sign(
       { userId: user.id },
       { expiresIn: rememberMe ? '30d' : '7d' }
     );
@@ -175,7 +175,7 @@ export async function authRoutes(app: FastifyInstance) {
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: user.tenant_id,
       },
       accessToken,
       refreshToken,
@@ -184,16 +184,16 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Refresh token
   api.post('/refresh', async (request, reply) => {
-    const refreshToken = request.cookies.refreshToken;
+    const refreshToken = request.cookies?.refreshToken;
     if (!refreshToken) {
       return reply.code(401).send({ error: 'Refresh token required', code: 'NO_REFRESH_TOKEN' });
     }
 
     try {
-      const decoded = await request.refreshJwtVerify<{ userId: string }>();
+      const decoded = await request.jwtVerify<{ userId: string }>(refreshToken);
       const user = await app.prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, tenantId: true, role: true, email: true, status: true },
+        select: { id: true, tenant_id: true, role: true, email: true, status: true },
       });
 
       if (!user || user.status !== 'ACTIVE') {
@@ -201,11 +201,11 @@ export async function authRoutes(app: FastifyInstance) {
       }
 
       const accessToken = app.jwt.sign(
-        { userId: user.id, tenantId: user.tenantId, role: user.role },
+        { userId: user.id, tenantId: user.tenant_id, role: user.role },
         { expiresIn: '15m' }
       );
 
-      const newRefreshToken = app.refreshJwt.sign(
+      const newRefreshToken = app.jwt.sign(
         { userId: user.id },
         { expiresIn: '7d' }
       );
@@ -241,7 +241,7 @@ export async function authRoutes(app: FastifyInstance) {
         first_name: true,
         last_name: true,
         role: true,
-        tenantId: true,
+        tenant_id: true,
         mfa_enabled: true,
         avatar_url: true,
         timezone: true,
@@ -259,7 +259,7 @@ export async function authRoutes(app: FastifyInstance) {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
-      tenantId: user.tenantId,
+      tenantId: user.tenant_id,
       mfaEnabled: user.mfa_enabled,
       avatarUrl: user.avatar_url,
       timezone: user.timezone,
@@ -448,11 +448,11 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Generate tokens
     const accessToken = app.jwt.sign(
-      { userId: user.id, tenantId: user.tenantId, role: user.role },
+      { userId: user.id, tenantId: user.tenant_id, role: user.role },
       { expiresIn: '15m' }
     );
 
-    const refreshToken = app.refreshJwt.sign(
+    const refreshToken = app.jwt.sign(
       { userId: user.id },
       { expiresIn: '7d' }
     );
