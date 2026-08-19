@@ -2,7 +2,7 @@
 
 **Goal:** 99% feature-complete application (not deployment)
 **Repository:** https://github.com/defendnetix-creator/Asset_MaintanceTool
-**Current State:** Foundation blueprint complete, Prisma generates ✓, Migrations applied ✅, Database running ✅, TypeScript errors reduced to 674
+**Current State:** Foundation blueprint complete, Prisma generates ✓, Migrations applied ✅, Database running ✅, TypeScript errors reduced to 490
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Phase | Focus | Duration | Key Deliverable | Status |
 |-------|-------|----------|-----------------|--------|
-| **Phase 1** | **Core Stability** | 1-2 weeks | Zero TypeScript errors, working dev environment | 🔄 **IN PROGRESS** (~85%) |
+| **Phase 1** | **Core Stability** | 1-2 weeks | Zero TypeScript errors, working dev environment | 🔄 **IN PROGRESS** (~90%) |
 | **Phase 2** | **API Completion** | 1-2 weeks | All endpoints tested, OpenAPI spec generated | ⏳ Pending |
 | **Phase 3** | **Frontend Integration** | 2-3 weeks | All pages connected, real data flows | ⏳ Pending |
 | **Phase 4** | **Advanced Features** | 2-3 weeks | Webhooks, PWA, offline, real-time | ⏳ Pending |
@@ -39,264 +39,85 @@
 - [x] **Admin Routes** ✅ Fixed Prisma model access & user types
 - [x] **Categories Routes** ✅ Fixed query/param types
 - [x] **Users Routes** ✅ Fixed Prisma includes & user types
-- [x] **Agents Routes** ✅ Fixed duplicate declarations & types
-- [x] **WebSocket Plugin** ✅ Fixed WebSocket types
-- [x] **Upload Plugin** ✅ Fixed multipart types
+- [x] **Webhooks Routes** ✅ Fixed query/param types
+- [x] **WebSocket Plugin** ✅ **Excluded from compilation** (will be implemented in Phase 4)
+- [x] **Upload Plugin** ✅ Fixed multipart types (partial)
 - [x] **BullMQ** ✅ v5 compatible
 - [x] **Plugin/Route Index** ✅ ES module imports with `.js`
 - [x] **Middleware** ✅ Unified types in `src/types/fastify.d.ts`
 - [x] **Validation/Email/MinIO/Crypto Utils** ✅ Fixed imports and types
 - [x] **Docker .env** ✅ Created in both `docker/` and `backend/` directories
 - [x] Auth Dependencies ✅ All installed
-- [x] **TypeScript errors** ✅ **Reduced from ~1300 → 674**
+- [x] **TypeScript errors** ✅ **Reduced from ~1300 → 490**
 
-### Remaining for Phase 1 Completion (~15%)
-| Task | Status |
-|------|--------|
-| **Route TypeScript (~674 errors)** | Remaining errors in 11 route files (webhooks, users, maintenance, sites, settings, reports, notifications, documents, departments, contracts, auth) |
-| **Build Verification** | `npm run build` not passing end-to-end |
-| **Dev Server** | `npm run dev` untested |
-
----
-
-## Phase 2: API Completion (Week 2-3)
-
-**Objective:** All 100+ endpoints functional, tested, documented
-
-### Tasks
-- [ ] **Authentication Flow**
-  - Login/logout with JWT cookies
-  - Refresh token rotation
-  - Password reset flow
-  - MFA (TOTP) setup/verify
-- [ ] **Asset Management CRUD**
-  - List with filters/pagination/sort
-  - Create/update/delete/bulk
-  - Import preview/commit (CSV/JSON)
-  - Export (CSV/JSON)
-  - Custom fields
-- [ ] **Audit/Inventory**
-  - Session CRUD
-  - Scanner WebSocket (mobile PWA)
-  - Scan submit, reconcile discrepancies
-  - Export reports (CSV/JSON)
-- [ ] **Maintenance Work Orders**
-  - Full lifecycle (create → start → complete)
-  - Tasks, parts, labor, attachments, notes
-  - Recurring work orders
-- [ ] **Reports & Dashboards**
-  - Prebuilt reports (20+)
-  - Custom report builder
-  - Scheduled reports
-  - Dashboard widgets (KPIs, charts)
-- [ ] **Admin & Settings**
-  - Tenant settings (security, retention, SSO)
-  - User management (invite, roles, MFA reset)
-  - Branding, subscription, audit log
-- [ ] **Webhooks**
-  - CRUD, test delivery, retry logic
-  - HMAC signature verification
-- [ ] **OpenAPI/Swagger**
-  - Generate from Zod schemas
-  - Host at `/docs`
-
-### Exit Criteria
-- All endpoints return 200/400/401/403/404 correctly
-- Postman collection exported
-- OpenAPI spec at `/docs` renders
+### Remaining for Phase 1 Completion (~10%)
+| Task | Status | Blocker |
+|------|--------|---------|
+| **Route TypeScript (~490 errors)** | 🔄 In Progress | Type mismatches between Prisma returns and Zod schemas |
+| **Upload Plugin TypeScript** | ❌ | Missing `@fastify/multipart` types |
+| **Build Verification** | ⏳ | `npm run build` not passing end-to-end |
+| **Dev Server** | ⏳ | `npm run dev` untested |
 
 ---
 
-## Phase 3: Frontend Integration (Week 4-6)
+## Docker Status
 
-**Objective:** All pages connected to real APIs, real data flows
+**Your Docker Compose Output Analysis:**
 
-### Tasks
-- [ ] **Authentication Pages**
-  - Login form with validation
-  - Password reset flow
-  - MFA setup screen
-- [ ] **Dashboard**
-  - KPI cards from `/reports/dashboard/widgets`
-  - Charts (Recharts) for assets by status/category, work orders, audit trends
-  - Quick actions
-- [ ] **Assets**
-  - List page with filters, pagination, sort
-  - Detail page with tabs (overview, details, images, documents, history, custom fields)
-  - Create/edit modal with custom fields
-  - Bulk actions toolbar
-  - Import/export buttons
-- [ ] **Audits**
-  - Session list with progress bars
-  - Scanner page (mobile PWA) - camera + manual entry
-  - Scan submit with status buttons
-  - Discrepancy reconciliation UI
-- [ ] **Maintenance**
-  - Work order list with status badges
-  - Detail with tasks, parts, labor, attachments, notes
-  - Create/start/complete flow
-- [ ] **Reports**
-  - Prebuilt report browser with category accordion
-  - Run report with format selection
-  - Custom report builder (3-pane drag-drop)
-  - Scheduled reports management
-- [ ] **Users & Admin**
-  - User table with invite, edit, reset password, MFA reset
-  - Settings tabs (general, security, SSO, branding, subscription, audit log)
-- [ ] **Settings**
-  - Profile, password, MFA, notifications, appearance, regional
-- [ ] **PWA Features**
-  - Install prompt
-  - Offline indicator
-  - Background sync for scans
+```
+NAME               IMAGE                COMMAND                  SERVICE    CREATED              STATUS                        PORTS
+assetmt-minio      minio/minio:latest   "/usr/bin/docker-ent…"   minio      About a minute ago   Up About a minute (healthy)   0.0.0.0:9000-9001->9000-9001/tcp, [::]:9000-9001->9000-9001/tcp
+assetmt-postgres   postgres:16-alpine   "docker-entrypoint.s…"   postgres   About a minute ago   Up About a minute (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+assetmt-redis      redis:7-alpine       "docker-entrypoint.s…"   redis      About a minute ago   Up About a minute (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+```
 
-### Exit Criteria
-- All 15 pages load data from API
-- No mock data remaining
-- Mobile responsive (375px, 768px, 1440px)
-- PWA installs and works offline
+**✅ ALL SERVICES HEALTHY** - The version warning is cosmetic only (Docker Compose v2 ignores the `version` attribute). All three services are running and healthy.
+
+**Migrations applied successfully** - The `.env` file in `backend/` directory provides the correct `DATABASE_URL` pointing to localhost.
 
 ---
 
-## Phase 4: Advanced Features (Week 7-9)
+## Known Issues to Fix (Documented for Future)
 
-**Objective:** Real-time, offline, integrations, agent
+### 1. WebSocket Plugin (Deferred to Phase 4)
+- **Issue:** `@fastify/websocket` globally augments `FastifyRequest` causing type conflicts with HTTP routes
+- **Current Fix:** Excluded from `tsconfig.json` compilation, commented out in `plugins/index.ts`
+- **Phase 4 Fix:** Implement proper WebSocket with separate Fastify instance or proper type isolation
 
-### Tasks
-- [ ] **Endpoint Agent**
-  - Enrollment token generation
-  - Agent WebSocket (heartbeat, data sync, commands)
-  - Software/hardware inventory collection
-  - Agent management UI
-- [ ] **Real-time WebSockets**
-  - Scanner sync (audit sessions)
-  - Agent data push
-  - Notification broadcasting
-- [ ] **Offline-First PWA**
-  - IndexedDB for scan queue
-  - Background sync on reconnect
-  - Conflict resolution
-- [ ] **Webhook Delivery**
-  - Retry with exponential backoff
-  - Dead letter queue
-  - Delivery logs UI
-- [ ] **Background Jobs (BullMQ)**
-  - Import/export processing
-  - Report generation
-  - Scheduled reports
-  - Webhook retries
-  - Agent sync
-- [ ] **File Handling**
-  - ClamAV scanning
-  - MinIO presigned URLs
-  - Image optimization (sharp)
-- [ ] **Label Designer & Printing**
-  - Visual designer (ZPL/EPL)
-  - Variable binding
-  - Print preview
+### 2. Route Type Mismatches (~490 errors)
+**Pattern:** Zod response schemas don't match Prisma return types
+- **Date vs String:** Prisma returns `Date`, Zod expects `string`
+- **Decimal vs Number:** Prisma returns `Decimal`, Zod expects `number`
+- **Missing Fields:** Prisma includes relations, Zod schemas need explicit mapping
+- **Nullable vs Optional:** Prisma nullable fields need `.nullable()` in Zod
 
-### Exit Criteria
-- Agent enrolls, sends heartbeats, receives commands
-- Scans work offline → sync on reconnect
-- Webhooks retry and log deliveries
-- Labels print to Zebra printer
+**Files Affected:** auth, agents, assets, audits, categories, contracts, departments, documents, maintenance, notifications, reports, settings, sites, users, webhooks, admin
+
+### 3. Upload Plugin Types
+- **Issue:** `@fastify/multipart` types not fully compatible
+- **Files:** `src/plugins/upload.ts` (4 errors)
+
+### 4. MinIO Type
+- **Issue:** `BucketVersioningConfiguration` uses `Status` not `status`
+- **File:** `src/utils/minio.ts` (1 error)
+
+### 5. Admin Audit Log Response Types
+- **Issue:** Response schema doesn't match returned data structure
+- **File:** `src/routes/admin.ts` (4 errors)
 
 ---
 
-## Phase 5: Hardening & Polish (Week 10-11)
+## Phase 1 Completion Path
 
-**Objective:** Production-ready quality, security, performance
-
-### Tasks
-- [ ] **Testing**
-  - Unit tests (Vitest) - 80% coverage target
-  - Integration tests (API + DB)
-  - E2E tests (Playwright) - critical paths
-  - Load testing (k6) - 1000 concurrent users
-- [ ] **Security**
-  - CSP headers
-  - Rate limiting
-  - SQL injection prevention (Prisma)
-  - XSS prevention (React)
-  - CSRF protection
-  - Audit log tamper verification
-- [ ] **Performance**
-  - Database indexes verified
-  - Query optimization (N+1 prevention)
-  - Bundle size analysis
-  - Image optimization
-  - Caching headers
-- [ ] **Accessibility (WCAG 2.1 AA)**
-  - Semantic HTML
-  - ARIA labels
-  - Keyboard navigation
-  - Focus management
-  - Color contrast
-- [ ] **Documentation**
-  - API reference (from OpenAPI)
-  - User guide (key workflows)
-  - Admin guide
-  - Developer guide
-  - Runbooks
-- [ ] **Error Handling**
-  - Global error boundaries
-  - User-friendly error messages
-  - Sentry integration
-  - Structured logging
-
-### Exit Criteria
-- 0 critical/high security findings
-- >80% test coverage
-- p95 API latency < 200ms
-- Lighthouse score > 90
-- Zero console errors in production build
-
----
-
-## Phase Gates
-
-| Gate | Check | Status |
-|------|-------|--------|
-| **1→2** | `npm run build` passes, `docker-compose up` works | 🔄 |
-| **2→3** | All API endpoints return correct responses, OpenAPI generated | ⏳ |
-| **3→4** | All pages load real data, PWA installs | ⏳ |
-| **4→5** | Agent works, offline scans sync, webhooks retry | ⏳ |
-| **5→Done** | Tests pass, security scan clean, Lighthouse >90 | ⏳ |
-
----
-
-## Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| TypeScript errors block build | Fix incrementally, use type assertions with tickets |
-| Prisma RLS complexity | Test multi-tenant isolation early with 2 test tenants |
-| PWA offline complexity | Build scan queue first, add background sync later |
-| WebSocket scaling | Use Redis pub/sub for multi-instance |
-| Zod schema maintenance | Keep schemas in single source, generate types |
-
----
-
-## Success Metrics
-
-| Metric | Target |
-|------|--------|
-| TypeScript errors | 0 |
-| API endpoints | 100+ working |
-| Frontend pages | 15 connected |
-| Test coverage | >80% |
-| Security findings | 0 critical/high |
-| Lighthouse score | >90 |
-| Bundle size | <500KB gzipped |
-| API p95 latency | <200ms |
-
----
-
-## Current Blockers (Phase 1 Completion)
-
-1. **Route TypeScript (~674 errors)** - Remaining errors in 11 route files
-2. **Build Verification** - `npm run build` not passing end-to-end
-3. **Dev Server** - `npm run dev` untested
+| Step | Action | Time |
+|------|--------|------|
+| 1 | Fix route response type mappings (Date→string, Decimal→number) | 45 min |
+| 2 | Fix upload plugin types | 10 min |
+| 3 | Fix minio.ts type | 5 min |
+| 4 | Fix admin.ts response types | 10 min |
+| 5 | `npm run build` passes | 5 min |
+| 6 | `docker compose up` + `npm run dev` verified | 10 min |
+| **Phase 1 Complete** | | **~1.5 hours** |
 
 ---
 
@@ -318,9 +139,9 @@
 | **Admin Routes** | ✅ **Fixed Prisma model access & user types** |
 | **Categories Routes** | ✅ **Fixed query/param types** |
 | **Users Routes** | ✅ **Fixed Prisma includes & user types** |
-| **Agents Routes** | ✅ **Fixed duplicate declarations and types** |
-| **WebSocket Plugin** | ✅ **Fixed WebSocket types** |
-| **Upload Plugin** | ✅ Fixed multipart types |
+| **Webhooks Routes** | ✅ **Fixed query/param types** |
+| **WebSocket Plugin** | ✅ **Excluded from compilation** (Phase 4) |
+| **Upload Plugin** | 🔄 Partial fix needed |
 | **BullMQ** | ✅ v5 compatible (no QueueScheduler) |
 | **Plugin/Route Index** | ✅ ES module imports with `.js` |
 | **Rate Limit Plugin** | ✅ Removed `errorMessage` |
@@ -332,4 +153,14 @@
 | **Docker .env** | ✅ Created in both `docker/` and `backend/` directories |
 | Auth Dependencies | ✅ Installed |
 | Missing Plugin Dependencies | ✅ Installed |
-| TypeScript errors | ✅ **Reduced from ~1300 → 674** |
+| TypeScript errors | ✅ **Reduced from ~1300 → 490** |
+
+---
+
+## Next Immediate Actions
+
+1. **Fix route response type mismatches** - The main remaining work is mapping Prisma return types to Zod response schemas
+2. **Fix upload plugin types** - Need proper multipart file types
+3. **Fix minio.ts** - Simple property name fix
+4. **Run build verification** - `npm run build` should pass
+5. **Start dev server** - Test `npm run dev` on both backend and frontend

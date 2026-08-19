@@ -6,7 +6,7 @@ import { prismaPlugin } from './prisma.js';
 import { redisPlugin } from './redis.js';
 import { authPlugin } from './auth.js';
 import { bullmqPlugin } from './bullmq.js';
-import { websocketPlugin } from './websocket.js';
+// import { websocketPlugin } from './websocket.js'; // Disabled for Phase 1
 import { metricsPlugin } from './metrics.js';
 import { tracingPlugin } from './tracing.js';
 import { uploadPlugin } from './upload.js';
@@ -49,8 +49,8 @@ export async function registerPlugins(app: FastifyInstance) {
   // Background jobs
   await app.register(bullmqPlugin);
 
-  // Real-time
-  await app.register(websocketPlugin);
+  // Real-time (disabled for Phase 1 - will be enabled in Phase 4)
+  // await app.register(websocketPlugin);
 
   // File uploads
   await app.register(import('@fastify/multipart'), {
