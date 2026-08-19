@@ -8,17 +8,6 @@ import argon2 from 'argon2';
 import fs from 'fs';
 import path from 'path';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: { id: string; tenantId: string; role: string; email: string };
-    tenantId?: string;
-  }
-  interface FastifyInstance {
-    hashPassword: (password: string) => Promise<string>;
-    verifyPassword: (password: string, hash: string) => Promise<boolean>;
-  }
-}
-
 const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
 const PUBLIC_KEY = process.env.JWT_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/public.pem'), 'utf-8');
 const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');

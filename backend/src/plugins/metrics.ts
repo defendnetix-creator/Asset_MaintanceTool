@@ -87,7 +87,7 @@ export const metricsPlugin: FastifyPluginAsync = async (app) => {
   // Update DB connections gauge
   setInterval(async () => {
     try {
-      const result = await app.prisma.$queryRaw`SELECT count(*) as count FROM pg_stat_activity WHERE state = 'active'`;
+      const result = await app.prisma.$queryRaw`SELECT count(*) as count FROM pg_stat_activity WHERE state = 'active'` as Array<{ count: bigint }>;
       dbConnections.set(Number(result[0]?.count || 0));
     } catch {}
   }, 30000);

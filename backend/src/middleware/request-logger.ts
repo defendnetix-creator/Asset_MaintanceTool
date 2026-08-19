@@ -3,13 +3,6 @@
 
 import { FastifyPluginAsync, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    startTime?: bigint;
-    tenantId?: string;
-  }
-}
-
 export const requestLogger: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.addHook('onRequest', async (request: FastifyRequest) => {
     request.startTime = process.hrtime.bigint();
@@ -23,7 +16,6 @@ export const requestLogger: FastifyPluginAsync = async (app: FastifyInstance) =>
           'x-real-ip': request.headers['x-real-ip'],
         },
         tenantId: request.tenantId,
-        userId: request.user?.id,
       },
     }, 'Incoming request');
   });
@@ -39,7 +31,6 @@ export const requestLogger: FastifyPluginAsync = async (app: FastifyInstance) =>
         method: request.method,
         url: request.url,
         tenantId: request.tenantId,
-        userId: request.user?.id,
       },
     }, 'Request completed');
   });

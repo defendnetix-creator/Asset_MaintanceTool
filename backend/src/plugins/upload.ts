@@ -3,14 +3,7 @@
 
 import { FastifyPluginAsync } from 'fastify';
 import { spawn } from 'child_process';
-import { pipeline } from 'stream/promises';
-import { MinioClient } from '../utils/minio';
-
-declare module 'fastify' {
-  interface FastifyRequest {
-    file?: { buffer: Buffer; filename: string; mimetype: string; size: number; file: NodeJS.ReadableStream };
-  }
-}
+import { MinioClient } from '../utils/minio.js';
 
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -59,10 +52,11 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
     const url = await minio.presignedGetObject('assets', key, 15 * 60); // 15 min
 
     // Save document record
+    const body = request.body as { asset_id?: string } | undefined;
     const document = await app.prisma.document.create({
       data: {
         tenant_id: tenantId,
-        asset_id: request.body.asset_id || null,
+        asset_id: body?.asset_id || null,
         filename: data.filename,
         mime_type: data.mimetype,
         size: data.file.bytesRead,
@@ -101,10 +95,11 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
       await minio.putObject('assets', key, data.file, { 'Content-Type': data.mimetype });
       const url = await minio.presignedGetObject('assets', key, 15 * 60);
 
+      const body = request.body as { asset_id?: string } | undefined;
       const document = await app.prisma.document.create({
         data: {
           tenant_id: tenantId,
-          asset_id: request.body.asset_id || null,
+          asset_id: body?.asset_id || null,
           filename: data.filename,
           mime_type: data.mimetype,
           size: data.file.bytesRead,

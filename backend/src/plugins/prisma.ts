@@ -3,7 +3,7 @@
 
 import { FastifyPluginAsync } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { tenantMiddleware } from '../middleware/tenant-middleware';
+import { tenantMiddleware } from '../middleware/tenant-middleware.js';
 
 declare module 'fastify' {
   interface FastifyInstance {

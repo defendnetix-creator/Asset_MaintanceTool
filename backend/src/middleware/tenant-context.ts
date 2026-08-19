@@ -3,12 +3,11 @@
 
 import { FastifyPluginAsync, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    tenantId?: string;
-    tenant?: { id: string; status: string; slug: string };
-    user?: { id: string; tenantId: string; role: string; email: string };
-  }
+interface AuthUser {
+  id: string;
+  tenantId: string;
+  role: string;
+  email: string;
 }
 
 export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) => {
@@ -22,8 +21,9 @@ export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) =>
     let tenantId: string | undefined;
 
     // 1. From JWT token (set by auth plugin)
-    if (request.user?.tenantId) {
-      tenantId = request.user.tenantId;
+    const authUser = request.user as AuthUser | undefined;
+    if (authUser?.tenantId) {
+      tenantId = authUser.tenantId;
     }
     // 2. From X-Tenant-ID header (for API keys)
     else if (request.headers['x-tenant-id']) {
