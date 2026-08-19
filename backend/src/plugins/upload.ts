@@ -15,6 +15,21 @@ const ALLOWED_TYPES = [
 ];
 const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
+interface UploadFile {
+  filename: string;
+  mimetype: string;
+  encoding: string;
+  file: NodeJS.ReadableStream;
+  fields: Record<string, string>;
+  toBuffer(): Promise<Buffer>;
+}
+
+interface ScanResult {
+  clean: boolean;
+  threat?: string;
+  sha256: string;
+}
+
 export const uploadPlugin: FastifyPluginAsync = async (app) => {
   await app.register(import('@fastify/multipart'), {
     limits: { fileSize: MAX_SIZE, files: 10 },
@@ -23,30 +38,31 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
 
   // Single file upload
   app.post('/api/upload', async (request, reply) => {
-    const data = await request.file();
-    if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+    const data = await request.file() as UploadFile | undefined;
+    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
 
     // Validate type
     if (!ALLOWED_TYPES.includes(data.mimetype)) {
-      return reply.code(400).send({ error: `File type ${data.mimetype} not allowed` });
+      return reply.status(400).send({ error: `File type ${data.mimetype} not allowed` });
     }
 
-    // Validate size
-    if (data.file.bytesRead > MAX_SIZE) {
-      return reply.code(400).send({ error: 'File too large (max 25MB)' });
+    // Get file buffer for size check and scanning
+    const fileBuffer = await data.toBuffer();
+    if (fileBuffer.length > MAX_SIZE) {
+      return reply.status(400).send({ error: 'File too large (max 25MB)' });
     }
 
     // Scan with ClamAV
-    const scanResult = await scanFile(data.file);
+    const scanResult = await scanFile(fileBuffer);
     if (!scanResult.clean) {
-      return reply.code(400).send({ error: `File infected: ${scanResult.threat}` });
+      return reply.status(400).send({ error: `File infected: ${scanResult.threat}` });
     }
 
     // Upload to MinIO
     const minio = new MinioClient();
     const tenantId = request.tenantId!;
     const key = `uploads/${tenantId}/${Date.now()}-${data.filename}`;
-    await minio.putObject('assets', key, data.file, { 'Content-Type': data.mimetype });
+    await minio.putObject('assets', key, fileBuffer, { 'Content-Type': data.mimetype });
 
     // Generate presigned URL
     const url = await minio.presignedGetObject('assets', key, 15 * 60); // 15 min
@@ -59,10 +75,10 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
         asset_id: body?.asset_id || null,
         filename: data.filename,
         mime_type: data.mimetype,
-        size: data.file.bytesRead,
+        size: fileBuffer.length,
         url,
         sha256: scanResult.sha256,
-        uploaded_by: request.user!.id,
+        uploaded_by: (request.user as { id: string }).id,
       },
     });
 
@@ -72,18 +88,19 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
   // Multiple file upload
   app.post('/api/upload/multiple', async (request, reply) => {
     const files = await request.files();
-    if (!files || files.length === 0) {
-      return reply.code(400).send({ error: 'No files uploaded' });
+    if (!files || (typeof files[Symbol.asyncIterator] === 'function' && (await files.next()).done)) {
+      return reply.status(400).send({ error: 'No files uploaded' });
     }
 
     const results = [];
-    for (const data of files) {
+    for await (const data of files as AsyncIterableIterator<UploadFile>) {
       if (!ALLOWED_TYPES.includes(data.mimetype)) {
         results.push({ filename: data.filename, error: `File type ${data.mimetype} not allowed` });
         continue;
       }
 
-      const scanResult = await scanFile(data.file);
+      const fileBuffer = await data.toBuffer();
+      const scanResult = await scanFile(fileBuffer);
       if (!scanResult.clean) {
         results.push({ filename: data.filename, error: `File infected: ${scanResult.threat}` });
         continue;
@@ -92,7 +109,7 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
       const minio = new MinioClient();
       const tenantId = request.tenantId!;
       const key = `uploads/${tenantId}/${Date.now()}-${data.filename}`;
-      await minio.putObject('assets', key, data.file, { 'Content-Type': data.mimetype });
+      await minio.putObject('assets', key, fileBuffer, { 'Content-Type': data.mimetype });
       const url = await minio.presignedGetObject('assets', key, 15 * 60);
 
       const body = request.body as { asset_id?: string } | undefined;
@@ -102,10 +119,10 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
           asset_id: body?.asset_id || null,
           filename: data.filename,
           mime_type: data.mimetype,
-          size: data.file.bytesRead,
+          size: fileBuffer.length,
           url,
           sha256: scanResult.sha256,
-          uploaded_by: request.user!.id,
+          uploaded_by: (request.user as { id: string }).id,
         },
       });
 
@@ -116,30 +133,23 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
   });
 };
 
-async function scanFile(file: NodeJS.ReadableStream): Promise<{ clean: boolean; threat?: string; sha256: string }> {
+async function scanFile(fileBuffer: Buffer): Promise<ScanResult> {
   return new Promise((resolve) => {
     const crypto = require('crypto');
     const hash = crypto.createHash('sha256');
-    
+    hash.update(fileBuffer);
+    const sha256 = hash.digest('hex');
+
     const clam = spawn('clamdscan', ['--stdout', '--no-summary', '-']);
     let output = '';
-    
-    const chunks: Buffer[] = [];
-    file.on('data', (chunk) => {
-      chunks.push(chunk);
-      hash.update(chunk);
-      clam.stdin.write(chunk);
-    });
-    
-    file.on('end', () => {
-      clam.stdin.end();
-    });
-    
+
+    clam.stdin.write(fileBuffer);
+    clam.stdin.end();
+
     clam.stdout.on('data', (data) => { output += data.toString(); });
     clam.stderr.on('data', (data) => { output += data.toString(); });
-    
+
     clam.on('close', (code) => {
-      const sha256 = hash.digest('hex');
       if (code === 0) resolve({ clean: true, sha256 });
       else if (code === 1) resolve({ clean: false, threat: output.trim(), sha256 });
       else resolve({ clean: false, threat: `Scan error: ${output}`, sha256 });

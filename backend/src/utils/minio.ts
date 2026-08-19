@@ -22,7 +22,7 @@ export class MinioClient {
     if (!exists) {
       await this.client.makeBucket(bucketName, process.env.MINIO_REGION || 'us-east-1');
       // Set bucket policy for versioning
-      await this.client.setBucketVersioning(bucketName, { status: 'Enabled' });
+      await this.client.setBucketVersioning(bucketName, { Status: 'Enabled' });
     }
   }
 
