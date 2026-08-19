@@ -176,9 +176,6 @@ const exportReportSchema = {
   querystring: z.object({ format: z.enum(['pdf', 'csv', 'json']).default('pdf') }),
 };
 
-const messageResponse = z.object({ message: z.string() });
-const errorResponse = z.object({ error: z.string(), code: z.string() });
-
 export async function auditRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
