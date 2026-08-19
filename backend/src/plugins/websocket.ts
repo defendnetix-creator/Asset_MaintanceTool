@@ -3,21 +3,50 @@
 
 import { FastifyPluginAsync } from 'fastify';
 import { jwtVerify } from 'jose';
+import { WebSocket } from 'ws';
 
-const scannerConnections = new Map<string, Set<any>>(); // tenantId -> Set<WebSocket>
-const agentConnections = new Map<string, any>(); // enrollmentId -> WebSocket
+interface ScannerMessage {
+  type: 'scan' | 'ping';
+  data?: {
+    assetTag: string;
+    locationId: string;
+    status?: string;
+    notes?: string;
+    photoBase64?: string;
+  };
+}
+
+interface AgentMessage {
+  type: 'heartbeat' | 'data_sync' | 'command_result';
+  data?: any;
+}
+
+interface ScanData {
+  assetTag: string;
+  locationId: string;
+  status?: string;
+  notes?: string;
+  photoBase64?: string;
+}
+
+interface WebSocketConnection {
+  socket: WebSocket;
+}
+
+const scannerConnections = new Map<string, Set<WebSocket>>();
+const agentConnections = new Map<string, WebSocket>();
 
 export const websocketPlugin: FastifyPluginAsync = async (app) => {
   await app.register(import('@fastify/websocket'));
 
   // Scanner WebSocket (mobile PWA)
-  app.get('/ws/scanner', { websocket: true }, async (connection, request) => {
-    const token = request.query.token as string;
+  app.get('/ws/scanner', { websocket: true }, async (connection: WebSocketConnection, request) => {
+    const token = (request.query as Record<string, string | undefined>)?.token;
     if (!token) return connection.socket.close(4001, 'Missing token');
 
     try {
       const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_PUBLIC_KEY!));
-      const wsUser = { userId: payload.userId, tenantId: payload.tenantId, role: payload.role };
+      const wsUser = { userId: payload.userId as string, tenantId: payload.tenantId as string, role: payload.role as string };
       
       // Register scanner connection
       if (!scannerConnections.has(wsUser.tenantId)) {
@@ -25,11 +54,11 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
       }
       scannerConnections.get(wsUser.tenantId)!.add(connection.socket);
 
-      connection.socket.on('message', async (data) => {
+      connection.socket.on('message', async (data: WebSocket.Data) => {
         try {
-          const message = JSON.parse(data.toString());
+          const message: ScannerMessage = JSON.parse(data.toString());
           if (message.type === 'scan') {
-            await handleScan(wsUser, message.data, connection.socket);
+            await handleScan(wsUser, message.data!, connection.socket);
           } else if (message.type === 'ping') {
             connection.socket.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
           }
@@ -47,19 +76,18 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
   });
 
   // Agent WebSocket (endpoint agents)
-  app.get('/ws/agent', { websocket: true }, async (connection, request) => {
-    const agentToken = request.headers['x-agent-token'] as string;
+  app.get('/ws/agent', { websocket: true }, async (connection: WebSocketConnection, request) => {
+    const agentToken = request.headers['x-agent-token'] as string | undefined;
     if (!agentToken) return connection.socket.close(4001, 'Missing agent token');
 
     const enrollment = await validateAgentToken(app, agentToken);
     if (!enrollment) return connection.socket.close(4001, 'Invalid agent token');
 
-    const wsAgent = { enrollmentId: enrollment.id, assetId: enrollment.asset_id };
     agentConnections.set(enrollment.id, connection.socket);
 
-    connection.socket.on('message', async (data) => {
+    connection.socket.on('message', async (data: WebSocket.Data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message: AgentMessage = JSON.parse(data.toString());
         await handleAgentMessage(app, enrollment, message, connection.socket);
       } catch (err) {
         connection.socket.send(JSON.stringify({ type: 'error', message: 'Invalid message' }));
@@ -72,7 +100,8 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
   });
 
   // Helper functions
-  async function handleScan(user: any, scanData: any, socket: any) {
+  async function handleScan(user: { userId: string; tenantId: string; role: string }, scanData: ScanData | undefined, socket: WebSocket) {
+    if (!scanData) return;
     const { assetTag, locationId, status, notes, photoBase64 } = scanData;
 
     // Process scan via audit sync queue
@@ -91,10 +120,9 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
     socket.send(JSON.stringify({ type: 'scan_ack', assetTag, status: 'accepted' }));
   }
 
-  async function handleAgentMessage(app: any, enrollment: any, message: any, socket: any) {
+  async function handleAgentMessage(app: any, enrollment: any, message: AgentMessage, socket: WebSocket) {
     switch (message.type) {
       case 'heartbeat':
-        // Update last_seen
         await app.prisma.agentEnrollment.update({
           where: { id: enrollment.id },
           data: { last_seen: new Date() },
@@ -102,7 +130,6 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
         socket.send(JSON.stringify({ type: 'heartbeat_ack', timestamp: Date.now() }));
         break;
       case 'data_sync':
-        // Process agent data (hardware, software, network, security)
         await app.queues.agentSync.add('data_sync', {
           enrollmentId: enrollment.id,
           assetId: enrollment.asset_id,
@@ -111,13 +138,11 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
         socket.send(JSON.stringify({ type: 'sync_ack', timestamp: Date.now() }));
         break;
       case 'command_result':
-        // Handle command execution results
         break;
     }
   }
 
   async function validateAgentToken(app: any, token: string) {
-    // Validate agent token from database
     return app.prisma.agentEnrollment.findUnique({
       where: { enrollment_token: token },
       include: { asset: true },
@@ -130,7 +155,7 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
     if (connections) {
       const payload = JSON.stringify(message);
       for (const ws of connections) {
-        if (ws.readyState === 1) { // WebSocket.OPEN
+        if (ws.readyState === WebSocket.OPEN) {
           ws.send(payload);
         }
       }
@@ -139,15 +164,14 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
 
   app.decorate('sendToAgent', (enrollmentId: string, message: any) => {
     const ws = agentConnections.get(enrollmentId);
-    if (ws?.readyState === 1) { // WebSocket.OPEN
+    if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
   });
 
-  // Agent command helpers
   app.decorate('sendAgentCommand', async (enrollmentId: string, command: string, params: any) => {
     const ws = agentConnections.get(enrollmentId);
-    if (ws?.readyState === 1) { // WebSocket.OPEN
+    if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'command', command, params, timestamp: Date.now() }));
       return true;
     }
