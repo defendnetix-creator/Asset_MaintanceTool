@@ -162,12 +162,43 @@ const changePasswordSchema = {
   response: { 200: messageResponse, 400: errorResponse, 401: errorResponse },
 };
 
+const messageResponse = z.object({ message: z.string() });
+
+interface AuthUser {
+  id: string;
+  tenantId: string;
+  role: string;
+  email: string;
+}
+
+interface UserWithGroups {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  title: string | null;
+  avatar_url: string | null;
+  timezone: string;
+  date_format: string;
+  time_format: string;
+  language: string;
+  role: string;
+  status: string;
+  mfa_enabled: boolean;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+  groups: Array<{ group: { id: string; name: string } }>;
+  _count?: { assigned_assets: number; api_keys: number };
+}
+
 export async function userRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // List users
   api.get('/', listUsersSchema, async (request) => {
-    const { page, limit, search, role, status, group_id } = request.query;
+    const { page, limit, search, role, status, group_id } = request.query as { page: number; limit: number; search?: string; role?: string; status?: string; group_id?: string };
     const tenantId = request.tenantId!;
 
     const where: any = { tenant_id: tenantId, deleted_at: null };
@@ -207,16 +238,16 @@ export async function userRoutes(app: FastifyInstance) {
   // Create user (invite)
   api.post('/', createUserSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const inviterId = request.user!.id;
+    const inviterId = (request.user as AuthUser).id;
 
     const existing = await app.prisma.user.findFirst({
       where: { tenant_id: tenantId, email: request.body.email },
     });
     if (existing) {
-      return reply.code(400).send({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
+      return reply.status(400).send({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
     }
 
-    const { group_ids, password, send_invite, ...data } = request.body;
+    const { group_ids, password, send_invite, ...data } = request.body as any;
 
     let passwordHash: string | null = null;
     let status = 'INVITED';
@@ -235,14 +266,14 @@ export async function userRoutes(app: FastifyInstance) {
         invited_by: inviterId,
         invited_at: password ? null : new Date(),
         groups: group_ids?.length ? {
-          create: group_ids.map(group_id => ({ group_id })),
+          create: group_ids.map((group_id: string) => ({ group_id })),
         } : undefined,
       },
     });
 
-    return reply.code(201).send({
+    return reply.status(201).send({
       ...user,
-      groups: group_ids ? group_ids.map(id => ({ id, name: '' })) : [],
+      groups: group_ids ? group_ids.map((id: string) => ({ id, name: '' })) : [],
       assigned_assets_count: 0,
       api_keys_count: 0,
     });
@@ -256,17 +287,17 @@ export async function userRoutes(app: FastifyInstance) {
         groups: { include: { group: { select: { id: true, name: true } } } },
         _count: { select: { assigned_assets: true, api_keys: true } },
       },
-    });
+    }) as UserWithGroups | null;
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     return {
       ...user,
       groups: user.groups.map(g => g.group),
-      assigned_assets_count: user._count.assigned_assets,
-      api_keys_count: user._count.api_keys,
+      assigned_assets_count: user._count?.assigned_assets || 0,
+      api_keys_count: user._count?.api_keys || 0,
       _count: undefined,
     };
   });
@@ -278,11 +309,12 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
-    const { group_ids, ...data } = request.body;
+    const { group_ids, ...data } = request.body as any;
 
     const updated = await app.prisma.user.update({
       where: { id: request.params.id },
@@ -290,7 +322,7 @@ export async function userRoutes(app: FastifyInstance) {
         ...data,
         groups: group_ids ? {
           deleteMany: {},
-          create: group_ids.map(group_id => ({ group_id })),
+          create: group_ids.map((group_id: string) => ({ group_id })),
         } : undefined,
       },
       include: {
@@ -302,8 +334,8 @@ export async function userRoutes(app: FastifyInstance) {
     return {
       ...updated,
       groups: updated.groups.map(g => g.group),
-      assigned_assets_count: updated._count.assigned_assets,
-      api_keys_count: updated._count.api_keys,
+      assigned_assets_count: updated._count?.assigned_assets || 0,
+      api_keys_count: updated._count?.api_keys || 0,
       _count: undefined,
     };
   });
@@ -315,12 +347,13 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
-    if (existing.id === request.user!.id) {
-      return reply.code(400).send({ error: 'Cannot delete yourself', code: 'CANNOT_DELETE_SELF' });
+    if (existing.id === (request.user as AuthUser).id) {
+      return reply.status(400).send({ error: 'Cannot delete yourself', code: 'CANNOT_DELETE_SELF' });
     }
 
     await app.prisma.user.update({
@@ -338,8 +371,9 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     const passwordHash = await hashPassword(request.body.password);
@@ -359,12 +393,13 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     if (existing.status !== 'INVITED') {
-      return reply.code(400).send({ error: 'User is not in invited status', code: 'NOT_INVITED' });
+      return reply.status(400).send({ error: 'User is not in invited status', code: 'NOT_INVITED' });
     }
 
     await app.prisma.user.update({
@@ -382,8 +417,9 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     await app.prisma.user.update({
@@ -401,12 +437,13 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
+
     if (!existing) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
-    if (existing.id === request.user!.id) {
-      return reply.code(400).send({ error: 'Cannot change your own role', code: 'CANNOT_CHANGE_OWN_ROLE' });
+    if (existing.id === (request.user as AuthUser).id) {
+      return reply.status(400).send({ error: 'Cannot change your own role', code: 'CANNOT_CHANGE_OWN_ROLE' });
     }
 
     await app.prisma.user.update({
@@ -420,22 +457,22 @@ export async function userRoutes(app: FastifyInstance) {
   // Get current user profile (me)
   api.get('/me', meResponseSchema, async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
+      where: { id: (request.user as AuthUser).id },
       include: {
         groups: { include: { group: { select: { id: true, name: true } } } },
         _count: { select: { assigned_assets: true, api_keys: true } },
       },
-    });
+    }) as UserWithGroups | null;
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     return {
       ...user,
       groups: user.groups.map(g => g.group),
-      assigned_assets_count: user._count.assigned_assets,
-      api_keys_count: user._count.api_keys,
+      assigned_assets_count: user._count?.assigned_assets || 0,
+      api_keys_count: user._count?.api_keys || 0,
       _count: undefined,
     };
   });
@@ -443,19 +480,19 @@ export async function userRoutes(app: FastifyInstance) {
   // Update current user profile
   api.patch('/me', updateMeSchema, async (request, reply) => {
     const user = await app.prisma.user.update({
-      where: { id: request.user!.id },
+      where: { id: (request.user as AuthUser).id },
       data: request.body,
       include: {
         groups: { include: { group: { select: { id: true, name: true } } } },
         _count: { select: { assigned_assets: true, api_keys: true } },
       },
-    });
+    }) as UserWithGroups;
 
     return {
       ...user,
       groups: user.groups.map(g => g.group),
-      assigned_assets_count: user._count.assigned_assets,
-      api_keys_count: user._count.api_keys,
+      assigned_assets_count: user._count?.assigned_assets || 0,
+      api_keys_count: user._count?.api_keys || 0,
       _count: undefined,
     };
   });
@@ -463,22 +500,22 @@ export async function userRoutes(app: FastifyInstance) {
   // Change password (current user)
   api.post('/me/change-password', changePasswordSchema, async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
+      where: { id: (request.user as AuthUser).id },
     });
 
     if (!user || !user.password_hash) {
-      return reply.code(401).send({ error: 'Cannot change password', code: 'NO_PASSWORD' });
+      return reply.status(401).send({ error: 'Cannot change password', code: 'NO_PASSWORD' });
     }
 
     const valid = await verifyPassword(request.body.current_password, user.password_hash);
     if (!valid) {
-      return reply.code(401).send({ error: 'Current password is incorrect', code: 'INVALID_PASSWORD' });
+      return reply.status(401).send({ error: 'Current password is incorrect', code: 'INVALID_PASSWORD' });
     }
 
     const passwordHash = await hashPassword(request.body.new_password);
 
     await app.prisma.user.update({
-      where: { id: request.user!.id },
+      where: { id: (request.user as AuthUser).id },
       data: { password_hash: passwordHash, updated_at: new Date() },
     });
 

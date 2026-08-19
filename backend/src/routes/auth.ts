@@ -106,29 +106,84 @@ const meResponse = z.object({
   language: z.string(),
 });
 
+interface AuthUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  tenant_id: string;
+  password_hash: string | null;
+  mfa_enabled: boolean;
+  mfa_secret: string | null;
+  backup_codes: string[];
+  avatar_url: string | null;
+  timezone: string;
+  language: string;
+  status: string;
+}
+
+function base32Encode(bytes: Buffer): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let result = '';
+  let bits = 0;
+  let value = 0;
+  
+  for (const byte of bytes) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      result += alphabet[(value >> bits) & 31];
+    }
+  }
+  if (bits > 0) {
+    result += alphabet[(value << (5 - bits)) & 31];
+  }
+  return result;
+}
+
+function generateTOTPSecret(): string {
+  return base32Encode(crypto.randomBytes(20));
+}
+
+function verifyTOTP(secret: string, token: string): boolean {
+  const crypto = await import('crypto');
+  // Simple TOTP verification using crypto
+  const timeStep = Math.floor(Date.now() / 30000);
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(timeStep));
+  
+  const key = Buffer.from(secret, 'base32');
+  const hmac = crypto.createHmac('sha1', key).update(counter).digest();
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code = ((hmac[offset] & 0x7f) << 24 | hmac[offset + 1] << 16 | hmac[offset + 2] << 8 | hmac[offset + 3]) % 1000000;
+  return code.toString().padStart(6, '0') === token;
+}
+
 export async function authRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // Login
   api.post('/login', loginSchema, async (request, reply) => {
-    const { email, password, rememberMe } = request.body;
+    const { email, password, rememberMe } = request.body as { email: string; password: string; rememberMe?: boolean };
 
     const user = await app.prisma.user.findUnique({
       where: { email },
       include: { tenant: true },
-    });
+    }) as AuthUser | null;
 
     if (!user || !user.password_hash) {
-      return reply.code(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
+      return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
     if (user.status !== 'ACTIVE') {
-      return reply.code(403).send({ error: 'Account is not active', code: 'ACCOUNT_INACTIVE' });
+      return reply.status(403).send({ error: 'Account is not active', code: 'ACCOUNT_INACTIVE' });
     }
 
     const valid = await verifyPassword(password, user.password_hash);
     if (!valid) {
-      return reply.code(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
+      return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
     // Generate tokens
@@ -186,7 +241,7 @@ export async function authRoutes(app: FastifyInstance) {
   api.post('/refresh', async (request, reply) => {
     const refreshToken = request.cookies?.refreshToken;
     if (!refreshToken) {
-      return reply.code(401).send({ error: 'Refresh token required', code: 'NO_REFRESH_TOKEN' });
+      return reply.status(401).send({ error: 'Refresh token required', code: 'NO_REFRESH_TOKEN' });
     }
 
     try {
@@ -194,10 +249,10 @@ export async function authRoutes(app: FastifyInstance) {
       const user = await app.prisma.user.findUnique({
         where: { id: decoded.userId },
         select: { id: true, tenant_id: true, role: true, email: true, status: true },
-      });
+      }) as AuthUser | null;
 
       if (!user || user.status !== 'ACTIVE') {
-        return reply.code(401).send({ error: 'User not found or inactive', code: 'USER_INACTIVE' });
+        return reply.status(401).send({ error: 'User not found or inactive', code: 'USER_INACTIVE' });
       }
 
       const accessToken = app.jwt.sign(
@@ -218,7 +273,7 @@ export async function authRoutes(app: FastifyInstance) {
     } catch {
       reply.clearCookie('accessToken', { path: '/' });
       reply.clearCookie('refreshToken', { path: '/' });
-      return reply.code(401).send({ error: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
+      return reply.status(401).send({ error: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
     }
   });
 
@@ -234,7 +289,7 @@ export async function authRoutes(app: FastifyInstance) {
     schema: { response: { 200: meResponse, 404: errorResponse } },
   }, async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
+      where: { id: (request.user as AuthUser).id },
       select: {
         id: true,
         email: true,
@@ -250,7 +305,7 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     return {
@@ -269,12 +324,13 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Forgot password
   api.post('/forgot-password', forgotPasswordSchema, async (request, reply) => {
+    const { email } = request.body as { email: string };
     const user = await app.prisma.user.findUnique({
-      where: { email: request.body.email },
-    });
+      where: { email },
+    }) as AuthUser | null;
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     // Generate reset token (in production, send via email)
@@ -296,15 +352,15 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Reset password
   api.post('/reset-password', resetPasswordSchema, async (request, reply) => {
-    const { token, password } = request.body;
+    const { token, password } = request.body as { token: string; password: string };
     const tokenHash = await hashPassword(token);
 
     const user = await app.prisma.user.findFirst({
       where: { mfa_secret: tokenHash },
-    });
+    }) as AuthUser | null;
 
     if (!user) {
-      return reply.code(400).send({ error: 'Invalid or expired reset token', code: 'INVALID_RESET_TOKEN' });
+      return reply.status(400).send({ error: 'Invalid or expired reset token', code: 'INVALID_RESET_TOKEN' });
     }
 
     const newPasswordHash = await hashPassword(password);
@@ -324,19 +380,19 @@ export async function authRoutes(app: FastifyInstance) {
   // MFA setup
   api.post('/mfa/setup', async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
-    });
+      where: { id: (request.user as AuthUser).id },
+    }) as AuthUser | null;
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     if (user.mfa_enabled) {
-      return reply.code(400).send({ error: 'MFA already enabled', code: 'MFA_ALREADY_ENABLED' });
+      return reply.status(400).send({ error: 'MFA already enabled', code: 'MFA_ALREADY_ENABLED' });
     }
 
     // Generate TOTP secret
-    const secret = crypto.randomBytes(20).toString('base32');
+    const secret = generateTOTPSecret();
     const otpauth = `otpauth://totp/AssetMT:${user.email}?secret=${secret}&issuer=AssetMT`;
 
     // Store secret temporarily (not enabled yet)
@@ -358,24 +414,19 @@ export async function authRoutes(app: FastifyInstance) {
   // MFA verify (enable)
   api.post('/mfa/verify', mfaVerifySchema, async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
-    });
+      where: { id: (request.user as AuthUser).id },
+    }) as AuthUser | null;
 
     if (!user || !user.mfa_secret) {
-      return reply.code(400).send({ error: 'MFA setup not initiated', code: 'MFA_NOT_INITIATED' });
+      return reply.status(400).send({ error: 'MFA setup not initiated', code: 'MFA_NOT_INITIATED' });
     }
 
     // Verify TOTP token
-    const speakeasy = await import('speakeasy');
-    const verified = speakeasy.totp.verify({
-      secret: user.mfa_secret,
-      encoding: 'base32',
-      token: request.body.token,
-      window: 1,
-    });
+    const { token } = request.body as { token: string };
+    const verified = verifyTOTP(user.mfa_secret, token);
 
     if (!verified) {
-      return reply.code(400).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
+      return reply.status(400).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
     }
 
     // Generate new backup codes
@@ -396,16 +447,17 @@ export async function authRoutes(app: FastifyInstance) {
   // MFA disable
   api.post('/mfa/disable', mfaDisableSchema, async (request, reply) => {
     const user = await app.prisma.user.findUnique({
-      where: { id: request.user!.id },
-    });
+      where: { id: (request.user as AuthUser).id },
+    }) as AuthUser | null;
 
     if (!user || !user.password_hash) {
-      return reply.code(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
+      return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
-    const valid = await verifyPassword(request.body.password, user.password_hash);
+    const { password } = request.body as { password: string };
+    const valid = await verifyPassword(password, user.password_hash);
     if (!valid) {
-      return reply.code(401).send({ error: 'Invalid password', code: 'INVALID_PASSWORD' });
+      return reply.status(401).send({ error: 'Invalid password', code: 'INVALID_PASSWORD' });
     }
 
     await app.prisma.user.update({
@@ -423,27 +475,21 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Verify MFA token (for login)
   api.post('/mfa/challenge', mfaChallengeSchema, async (request, reply) => {
-    const { email, token } = request.body;
+    const { email, token } = request.body as { email: string; token: string };
 
     const user = await app.prisma.user.findUnique({
       where: { email },
       include: { tenant: true },
-    });
+    }) as AuthUser | null;
 
     if (!user || !user.mfa_enabled || !user.mfa_secret) {
-      return reply.code(401).send({ error: 'MFA not enabled for this user', code: 'MFA_NOT_ENABLED' });
+      return reply.status(401).send({ error: 'MFA not enabled for this user', code: 'MFA_NOT_ENABLED' });
     }
 
-    const speakeasy = await import('speakeasy');
-    const verified = speakeasy.totp.verify({
-      secret: user.mfa_secret,
-      encoding: 'base32',
-      token,
-      window: 1,
-    });
+    const verified = verifyTOTP(user.mfa_secret, token);
 
     if (!verified) {
-      return reply.code(401).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
+      return reply.status(401).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
     }
 
     // Generate tokens
