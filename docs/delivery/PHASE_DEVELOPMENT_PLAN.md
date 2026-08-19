@@ -2,7 +2,7 @@
 
 **Goal:** 99% feature-complete application (not deployment)
 **Repository:** https://github.com/defendnetix-creator/Asset_MaintanceTool
-**Current State:** Foundation blueprint complete, Prisma generates ✓, Route TypeScript errors fixed ✓, Auth plugin fixed ✓, Infrastructure plugins fixed ✓, Auth routes fixed ✓, Remaining errors in other route implementations
+**Current State:** Foundation blueprint complete, Prisma generates ✓, Route TypeScript errors being fixed, Docker .env created
 
 ---
 
@@ -29,29 +29,27 @@
 - [x] Documentation (PRDs, ADRs, Stitch prompts, Evidence Index)
 - [x] Backend scaffold (Fastify + plugins + 16 route modules)
 - [x] **All 16 Route Files** ✅ **Structure fixed** (ES module imports)
-- [x] **Auth Plugin** ✅ **COMPLETE** (argon2, exports hashPassword/verifyPassword)
-- [x] **Auth Routes** ✅ **Prisma field names fixed** (tenant_id)
+- [x] **Auth Plugin** ✅ **COMPLETE** (argon2, JWT, cookies, MFA)
+- [x] **Auth Routes** ✅ **Prisma field names fixed** (`tenant_id`)
 - [x] **BullMQ** ✅ v5 compatible
 - [x] **Plugin/Route Index** ✅ ES module imports with `.js`
 - [x] **Middleware** ✅ Unified in `src/types/fastify.d.ts`
 - [x] **Rate Limit Plugin** ✅ Removed `errorMessage` option
-- [x] **Upload Plugin** ✅ Fixed multipart types
-- [x] **WebSocket Plugin** ✅ Fixed types
-- [x] **Tracing Plugin** ✅ Simplified (disabled for Phase 1)
-- [x] **Metrics Plugin** ✅ Fixed unknown type
-- [x] **Tenant Middleware** ✅ Created for RLS
+- [x] **Upload/WebSocket/Tracing/Metrics** ✅ Fixed
+- [x] **Tenant Middleware** ✅ RLS context
 - [x] **Unified Type Declarations** ✅ `src/types/fastify.d.ts` created
-- [x] **Validation Utils** ✅ Fixed duplicates
-- [x] **Email/MinIO/Crypto Utils** ✅ Fixed imports and types
+- [x] **Validation/Email/MinIO/Crypto Utils** ✅ Fixed imports and types
+- [x] **Agents Routes** ✅ Fixed duplicate declarations and type issues
+- [x] **Assets Routes** ✅ Fixed duplicate declarations and type issues
+- [x] Docker `.env` file created in `docker/` directory
 - [x] Auth Dependencies ✅ All installed
 
 ### Remaining for Phase 1 Completion (~10%)
 | Task | Blocker |
 |------|---------|
-| **Route Implementation TypeScript** | ~750 errors in routes using `request.user`, `request.body`, `request.query` - need type assertions or Zod parsing |
-| **Prisma field names in routes** | `tenantId` vs `tenant_id` in selects/where clauses across 15 route files |
-| **Missing Fastify methods** | `refreshJwt`, `refreshJwtVerify`, `setCookie` in routes |
-| **Database Migrations** | Need Docker services running first |
+| **Route TypeScript (~716 errors)** | Remaining errors in 13 route files (webhooks, users, audits, maintenance, etc.) |
+| **Docker Services** | Need to run `docker compose up -d postgres redis minio` locally |
+| **Database Migrations** | Need `npx prisma migrate dev --name init` after DB is up |
 | **Dev Environment** | `docker-compose up` → migrations → `npm run dev` untested |
 | **Build Verification** | `npm run build` not passing end-to-end |
 
@@ -292,36 +290,33 @@
 
 ## Current Blockers (Phase 1 Completion)
 
-1. **Route TypeScript (~750 errors)** - Routes use `request.user`, `request.body`, `request.query` without proper typing
-2. **Prisma field names in routes** - `tenantId` vs `tenant_id` in selects/where clauses across 15 route files
-3. **Missing Fastify methods** - `refreshJwt`, `refreshJwtVerify`, `setCookie` in routes
-4. **Database not running** - Need Docker Compose to start PostgreSQL/Redis/MinIO
-5. **Migrations not run** - Need `npx prisma migrate dev --name init` after DB is up
+1. **Route TypeScript (~716 errors)** - Remaining errors in 13 route files
+2. **Docker Services Not Running** - Need to run `docker compose up -d postgres redis minio` locally
+3. **Database Migrations** - Need `npx prisma migrate dev --name init` after DB is up
+4. **Dev Environment** - `docker-compose up` → migrations → `npm run dev` untested
 
 ---
 
-## Next Immediate Steps
+## Immediate Action Required
 
 ```bash
-# 1. Start Docker services
-cd /path/to/Asset_MaintanceTool
-docker-compose up -d postgres redis minio
+# Run these commands in YOUR LOCAL TERMINAL (PowerShell):
 
-# 2. Run Prisma migrations
-cd backend && npx prisma migrate dev --name init
+cd C:\Users\Akash Hodlur\Projects\Asset_MaintanceTool\docker
 
-# 3. Fix route TypeScript errors (systematic):
-#    - Bulk replace `tenantId` → `tenant_id` in Prisma queries across all routes
-#    - Add type guards for request.user
-#    - Use Zod parsing for request.body/query
-#    - Fix Fastify method calls (remove refreshJwt, use single jwt)
+# 1. Start services (uses .env file already created)
+docker compose up -d postgres redis minio
 
-# 4. Build and start dev
-npm run build
-npm run dev  # :3001
+# 2. Wait 10 seconds, then verify
+docker compose ps
+# Should show all 3 services "Up" or "Up (healthy)"
 
-# 5. Frontend build
-cd ../frontend && npm run build && npm run dev  # :3000
+# 3. Run migrations
+cd ..\backend
+npx prisma migrate dev --name init
+
+# 4. Verify
+npx prisma generate
 ```
 
 ---
@@ -335,25 +330,18 @@ cd ../frontend && npm run build && npm run dev  # :3000
 | Phase 1 plan | ✅ Created and updated |
 | **16 Route files TypeScript** | ✅ **Structure fixed** (ES module imports) |
 | **Auth Plugin** | ✅ **COMPLETE** (argon2, exports hashPassword/verifyPassword) |
-| **Auth Routes** | ✅ **Prisma field names fixed** (tenant_id) |
+| **Auth Routes** | ✅ **Prisma field names fixed** (`tenant_id`) |
+| **Agents Routes** | ✅ **Fixed duplicate declarations and types** |
+| **Assets Routes** | ✅ **Fixed duplicate declarations and types** |
 | **BullMQ** | ✅ v5 compatible (no QueueScheduler) |
 | **Plugin/Route Index** | ✅ ES module imports with `.js` |
 | **Rate Limit Plugin** | ✅ Removed `errorMessage` |
 | **Middleware** | ✅ Type declarations unified in `src/types/fastify.d.ts` |
-| **Upload Plugin** | ✅ Fixed multipart types |
-| **WebSocket Plugin** | ✅ Fixed types (removed WebSocket import conflicts) |
-| **Tracing Plugin** | ✅ Simplified (disabled for Phase 1) |
-| **Metrics Plugin** | ✅ Fixed unknown type |
+| **Upload/WebSocket/Tracing/Metrics** | ✅ Fixed |
 | **Tenant Middleware** | ✅ Created for RLS |
-| **Validation Utils** | ✅ Fixed duplicates |
-| **Email/MinIO/Crypto Utils** | ✅ Fixed imports and types |
+| **Unified Type Declarations** | ✅ `src/types/fastify.d.ts` created |
+| **Validation/Email/MinIO/Crypto Utils** | ✅ Fixed imports and types |
+| **Docker .env** | ✅ Created in `docker/` directory |
 | Auth Dependencies | ✅ Installed |
 | Missing Plugin Dependencies | ✅ Installed |
-| Backend scaffold | ✅ Complete (needs route TypeScript fixes) |
-| Frontend scaffold | ✅ Complete (needs integration) |
-| Docker infra | ✅ Complete |
-| Stitch design prompts | ✅ 12 prompts ready for review |
-| Evidence Index | ✅ 19 files classified |
-| PRDs (Biz + Tech) | ✅ Markdown + DOCX + PDF |
-| ADRs | ✅ 5 decisions documented |
-| TypeScript errors | ✅ Reduced from ~1300 → **758** |
+| TypeScript errors | ✅ Reduced from ~1300 → **716** |
