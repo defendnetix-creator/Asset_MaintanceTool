@@ -13,6 +13,10 @@ declare module 'fastify' {
     user?: { id: string; tenantId: string; role: string; email: string };
     tenantId?: string;
   }
+  interface FastifyInstance {
+    hashPassword: (password: string) => Promise<string>;
+    verifyPassword: (password: string, hash: string) => Promise<boolean>;
+  }
 }
 
 const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
@@ -70,8 +74,8 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
     if (isPublicRoute(request.url)) return;
 
     try {
-      const accessToken = request.cookies.accessToken;
-      const refreshToken = request.cookies.refreshToken;
+      const accessToken = request.cookies?.accessToken;
+      const refreshToken = request.cookies?.refreshToken;
 
       if (!accessToken) {
         return reply.code(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
@@ -79,35 +83,35 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
 
       // Verify access token
       const decoded = await request.jwtVerify<{ userId: string; tenantId: string; role: string }>();
-      
+
       // Verify user exists and is active
       const user = await app.prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, tenantId: true, role: true, email: true, status: true },
+        select: { id: true, tenant_id: true, role: true, email: true, status: true },
       });
 
-      if (!user || user.status !== 'ACTIVE' || user.tenantId !== decoded.tenantId) {
+      if (!user || user.status !== 'ACTIVE' || user.tenant_id !== decoded.tenantId) {
         return reply.code(403).send({ error: 'Forbidden', code: 'INVALID_TENANT' });
       }
 
-      request.user = { id: user.id, tenantId: user.tenantId, role: user.role, email: user.email };
-      request.tenantId = user.tenantId;
+      request.user = { id: user.id, tenantId: user.tenant_id, role: user.role, email: user.email };
+      request.tenantId = user.tenant_id;
     } catch (err) {
       // Try refresh token
-      if (request.cookies.refreshToken) {
+      if (request.cookies?.refreshToken) {
         try {
           const decoded = await request.jwtVerify<{ userId: string }>();
           const user = await app.prisma.user.findUnique({ where: { id: decoded.userId } });
-          
+
           if (user && user.status === 'ACTIVE') {
-            const newAccessToken = app.jwt.sign({ userId: user.id, tenantId: user.tenantId, role: user.role }, { expiresIn: '15m' });
+            const newAccessToken = app.jwt.sign({ userId: user.id, tenantId: user.tenant_id, role: user.role }, { expiresIn: '15m' });
             const newRefreshToken = app.jwt.sign({ userId: user.id }, { expiresIn: '7d' });
-            
+
             reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 15 * 60 });
             reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 });
-            
-            request.user = { id: user.id, tenantId: user.tenantId, role: user.role, email: user.email };
-            request.tenantId = user.tenantId;
+
+            request.user = { id: user.id, tenantId: user.tenant_id, role: user.role, email: user.email };
+            request.tenantId = user.tenant_id;
             return;
           }
         } catch {}
@@ -125,19 +129,5 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
     return argon2id.verify(hash, password);
   });
 };
-
-function isPublicRoute(url: string): boolean {
-  const publicRoutes = [
-    '/health',
-    '/ready',
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/auth/refresh',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/auth/verify-email',
-  ];
-  return publicRoutes.some(route => url.startsWith(route));
-}
 
 export default authPlugin;

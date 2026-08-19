@@ -1,14 +1,13 @@
 // backend/src/middleware/request-logger.ts
 // Request logging middleware
 
-import { FastifyPluginAsync } from 'fastify';
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyPluginAsync, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 declare module 'fastify' {
   interface FastifyRequest {
     startTime?: bigint;
     tenantId?: string;
-    user?: { id: string };
+    user?: { id: string; tenantId: string; role: string; email: string };
   }
 }
 

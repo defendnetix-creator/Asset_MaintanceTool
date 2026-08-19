@@ -7,7 +7,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     tenantId?: string;
     tenant?: { id: string; status: string; slug: string };
-    user?: { id: string; tenantId: string; role: string };
+    user?: { id: string; tenantId: string; role: string; email: string };
   }
 }
 

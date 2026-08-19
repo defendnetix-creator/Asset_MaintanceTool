@@ -2,7 +2,7 @@
 // BullMQ plugin for background job processing
 
 import { FastifyPluginAsync } from 'fastify';
-import { Queue, Worker, QueueScheduler, QueueEvents } from 'bullmq';
+import { Queue, Worker, QueueEvents } from 'bullmq';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -63,9 +63,6 @@ export const bullmqPlugin: FastifyPluginAsync = async (app) => {
   // Register queues on app
   app.decorate('queues', queues);
   app.decorate('queueEvents', queueEvents);
-
-  // Queue schedulers for delayed/repeat jobs
-  await Promise.all(Object.values(queues).map(q => new QueueScheduler(q.name, { connection })));
 
   // Queue event listeners
   for (const [name, events] of Object.entries(queueEvents)) {

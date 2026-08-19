@@ -3,27 +3,27 @@
 
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { authRoutes } from './auth';
-import { assetRoutes } from './assets';
-import { auditRoutes } from './audits';
-import { maintenanceRoutes } from './maintenance';
-import { reportRoutes } from './reports';
-import { userRoutes } from './users';
-import { adminRoutes } from './admin';
-import { webhookRoutes } from './webhooks';
-import { documentRoutes } from './documents';
-import { agentRoutes } from './agents';
-import { siteRoutes } from './sites';
-import { categoryRoutes } from './categories';
-import { departmentRoutes } from './departments';
-import { contractRoutes } from './contracts';
-import { notificationRoutes } from './notifications';
-import { settingsRoutes } from './settings';
+import { authRoutes } from './auth.js';
+import { assetRoutes } from './assets.js';
+import { auditRoutes } from './audits.js';
+import { maintenanceRoutes } from './maintenance.js';
+import { reportRoutes } from './reports.js';
+import { userRoutes } from './users.js';
+import { adminRoutes } from './admin.js';
+import { webhookRoutes } from './webhooks.js';
+import { documentRoutes } from './documents.js';
+import { agentRoutes } from './agents.js';
+import { siteRoutes } from './sites.js';
+import { categoryRoutes } from './categories.js';
+import { departmentRoutes } from './departments.js';
+import { contractRoutes } from './contracts.js';
+import { notificationRoutes } from './notifications.js';
+import { settingsRoutes } from './settings.js';
 
 export async function registerRoutes(app: FastifyInstance) {
   // API version prefix
   const api = app.withTypeProvider<ZodTypeProvider>();
-  
+
   // Register all route modules
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(assetRoutes, { prefix: '/api/assets' });
