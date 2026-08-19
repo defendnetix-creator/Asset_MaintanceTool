@@ -147,7 +147,7 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // List webhooks
   api.get('/', listWebhooksSchema, async (request) => {
-    const { page, limit, status } = request.query;
+    const { page, limit, status } = request.query as { page: number; limit: number; status?: string };
     const tenantId = request.tenantId!;
 
     const where: any = { tenant_id: tenantId };
@@ -173,7 +173,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     });
 
     if (!webhook) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     return webhook;
@@ -182,7 +182,7 @@ export async function webhookRoutes(app: FastifyInstance) {
   // Create webhook
   api.post('/', createWebhookSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
+    const userId = (request.user as { id: string }).id;
 
     // Generate secret
     const secret = crypto.randomBytes(32).toString('hex');
@@ -196,7 +196,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       },
     });
 
-    return reply.code(201).send(webhook);
+    return reply.status(201).send(webhook);
   });
 
   // Update webhook
@@ -207,7 +207,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!existing) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     const updated = await app.prisma.webhook.update({
@@ -226,7 +226,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!existing) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     await app.prisma.webhook.delete({
@@ -244,21 +244,21 @@ export async function webhookRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!webhook) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     const startTime = Date.now();
-    const payload = request.body.payload || { test: true, timestamp: new Date().toISOString() };
+    const { event, payload } = request.body as { event: string; payload?: any };
 
     try {
       const response = await fetch(webhook.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Webhook-Signature': crypto.createHmac('sha256', webhook.secret).update(JSON.stringify(payload)).digest('hex'),
-          'X-Webhook-Event': request.body.event,
+          'X-Webhook-Signature': crypto.createHmac('sha256', webhook.secret).update(JSON.stringify(payload || { test: true, timestamp: new Date().toISOString() })).digest('hex'),
+          'X-Webhook-Event': event,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload || { test: true, timestamp: new Date().toISOString() }),
         signal: AbortSignal.timeout(webhook.timeout_ms),
       });
 
@@ -267,8 +267,8 @@ export async function webhookRoutes(app: FastifyInstance) {
       await app.prisma.webhookDeliveryLog.create({
         data: {
           webhook_id: webhook.id,
-          event: request.body.event,
-          payload,
+          event,
+          payload: payload || { test: true, timestamp: new Date().toISOString() },
           status_code: response.status,
           response_body: await response.text(),
           latency_ms: latencyMs,
@@ -283,8 +283,8 @@ export async function webhookRoutes(app: FastifyInstance) {
       await app.prisma.webhookDeliveryLog.create({
         data: {
           webhook_id: webhook.id,
-          event: request.body.event,
-          payload,
+          event,
+          payload: payload || { test: true, timestamp: new Date().toISOString() },
           status_code: 0,
           response_body: err.message,
           latency_ms: latencyMs,
@@ -305,10 +305,10 @@ export async function webhookRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!webhook) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
-    const { page, limit, status } = request.query;
+    const { page, limit, status } = request.query as { page: number; limit: number; status?: string };
     const where: any = { webhook_id: request.params.id };
     if (status) where.status = status;
 
@@ -333,7 +333,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!webhook) {
-      return reply.code(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     const secret = crypto.randomBytes(32).toString('hex');
