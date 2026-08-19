@@ -119,7 +119,7 @@ export const uploadPlugin: FastifyPluginAsync = async (app) => {
 
     return { documents: results };
   });
-});
+};
 
 async function scanFile(file: NodeJS.ReadableStream): Promise<{ clean: boolean; threat?: string; sha256: string }> {
   return new Promise((resolve) => {

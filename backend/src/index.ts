@@ -2,11 +2,11 @@
 // Main entry point for Asset_MaintanceTool Backend
 
 import Fastify from 'fastify';
-import { registerPlugins } from './plugins';
-import { registerRoutes } from './routes';
-import { errorHandler } from './middleware/error-handler';
-import { requestLogger } from './middleware/request-logger';
-import { tenantContext } from './middleware/tenant-context';
+import { registerPlugins } from './plugins.js';
+import { registerRoutes } from './routes.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { requestLogger } from './middleware/request-logger.js';
+import { tenantContext } from './middleware/tenant-context.js';
 
 async function main() {
   const app = Fastify({

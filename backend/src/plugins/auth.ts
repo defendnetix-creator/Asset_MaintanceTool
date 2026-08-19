@@ -35,7 +35,7 @@ function isPublicRoute(url: string): boolean {
   return publicRoutes.some(route => url.startsWith(route));
 }
 
-export const authPlugin = async (app) => {
+export const authPlugin: FastifyPluginAsync = async (app) => {
   // Cookie parsing
   await app.register(fastifyCookie, {
     secret: COOKIE_SECRET,
@@ -54,7 +54,7 @@ export const authPlugin = async (app) => {
     cookie: { cookieName: 'accessToken', signed: false },
   });
 
-  // Refresh token JWT (7 days)
+  // Refresh token JWT (7 days) - register with different cookie name
   await app.register(fastifyJwt, {
     secret: {
       private: REFRESH_PRIVATE_KEY,
@@ -63,7 +63,6 @@ export const authPlugin = async (app) => {
     sign: { algorithm: 'RS256', expiresIn: '7d' },
     verify: { algorithms: ['RS256'] },
     cookie: { cookieName: 'refreshToken', signed: false },
-    namespace: 'refresh',
   });
 
   // Auth hook
@@ -97,12 +96,12 @@ export const authPlugin = async (app) => {
       // Try refresh token
       if (request.cookies.refreshToken) {
         try {
-          const decoded = await request.refreshJwtVerify<{ userId: string }>();
+          const decoded = await request.jwtVerify<{ userId: string }>();
           const user = await app.prisma.user.findUnique({ where: { id: decoded.userId } });
           
           if (user && user.status === 'ACTIVE') {
             const newAccessToken = app.jwt.sign({ userId: user.id, tenantId: user.tenantId, role: user.role }, { expiresIn: '15m' });
-            const newRefreshToken = app.refreshJwt.sign({ userId: user.id }, { expiresIn: '7d' });
+            const newRefreshToken = app.jwt.sign({ userId: user.id }, { expiresIn: '7d' });
             
             reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 15 * 60 });
             reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 });
@@ -125,7 +124,7 @@ export const authPlugin = async (app) => {
   app.decorate('verifyPassword', async (password: string, hash: string) => {
     return argon2id.verify(hash, password);
   });
-});
+};
 
 function isPublicRoute(url: string): boolean {
   const publicRoutes = [

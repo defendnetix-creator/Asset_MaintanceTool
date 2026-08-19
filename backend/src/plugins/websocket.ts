@@ -84,7 +84,7 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
   // Helper functions
   async function handleScan(user: any, scanData: any, socket: WebSocket) {
     const { assetTag, locationId, status, notes, photoBase64 } = scanData;
-    
+
     // Process scan via audit sync queue
     await app.queues.auditSync.add('scan', {
       userId: user.userId,
@@ -144,6 +144,7 @@ export const websocketPlugin: FastifyPluginAsync = async (app) => {
           ws.send(payload);
         }
       }
+    }
   });
 
   app.decorate('sendToAgent', (enrollmentId: string, message: any) => {

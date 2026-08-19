@@ -2,9 +2,18 @@
 // Request logging middleware
 
 import { FastifyPluginAsync } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
-export const requestLogger = async (app) => {
-  app.addHook('onRequest', async (request) => {
+declare module 'fastify' {
+  interface FastifyRequest {
+    startTime?: bigint;
+    tenantId?: string;
+    user?: { id: string };
+  }
+}
+
+export const requestLogger: FastifyPluginAsync = async (app: FastifyInstance) => {
+  app.addHook('onRequest', async (request: FastifyRequest) => {
     request.startTime = process.hrtime.bigint();
     app.log.info({
       req: {
@@ -21,7 +30,7 @@ export const requestLogger = async (app) => {
     }, 'Incoming request');
   });
 
-  app.addHook('onResponse', async (request, reply) => {
+  app.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
     const duration = Number(process.hrtime.bigint() - (request.startTime || process.hrtime.bigint())) / 1e6;
     app.log.info({
       res: {

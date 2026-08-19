@@ -1,10 +1,18 @@
 // backend/src/middleware/tenant-context.ts
 // Tenant context middleware - extracts tenant from request and sets RLS context
 
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
-export const tenantContext = async (app) => {
-  app.addHook('preHandler', async (request, reply) => {
+declare module 'fastify' {
+  interface FastifyRequest {
+    tenantId?: string;
+    tenant?: { id: string; status: string; slug: string };
+    user?: { id: string; tenantId: string; role: string };
+  }
+}
+
+export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) => {
+  app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     // Skip for health checks
     if (request.url === '/health' || request.url === '/ready' || request.url === '/metrics') {
       return;
@@ -57,9 +65,6 @@ export const tenantContext = async (app) => {
     // Set tenant context on request
     request.tenantId = tenantId;
     request.tenant = tenant;
-
-    // Set RLS context for Prisma
-    await request.server.prisma.$executeRaw`SET LOCAL app.current_tenant = ${tenantId}`;
   });
 };
 

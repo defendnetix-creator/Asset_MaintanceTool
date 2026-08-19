@@ -353,7 +353,7 @@ export const reportScheduleSchema = z.object({
     name: z.string().optional(),
   })),
   enabled: z.boolean().default(true),
-};
+});
 
 // Webhook validation
 export const webhookCreateSchema = z.object({
@@ -399,7 +399,7 @@ export const webhookUpdateSchema = z.object({
     delay_ms: z.number().int().positive().default(5000),
     timeout_ms: z.number().int().positive().default(30000),
   }).optional(),
-);
+});
 
 // Notification validation
 export const notificationPreferencesSchema = z.object({

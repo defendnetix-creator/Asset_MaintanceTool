@@ -2,6 +2,7 @@
 // Main routes registration
 
 import { FastifyInstance } from 'fastify';
+import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { authRoutes } from './auth';
 import { assetRoutes } from './assets';
 import { auditRoutes } from './audits';
@@ -41,5 +42,3 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(notificationRoutes, { prefix: '/api/notifications' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 }
-
-import { ZodTypeProvider } from 'fastify-type-provider-zod';
