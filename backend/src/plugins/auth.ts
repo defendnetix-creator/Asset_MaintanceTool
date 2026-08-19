@@ -8,6 +8,15 @@ import argon2 from 'argon2';
 import fs from 'fs';
 import path from 'path';
 
+// Standalone password hashing functions (exported for use in routes)
+export async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return argon2.verify(hash, password);
+}
+
 const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
 const PUBLIC_KEY = process.env.JWT_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/public.pem'), 'utf-8');
 const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');
@@ -110,14 +119,9 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
     }
   });
 
-  // Password hashing helpers
-  app.decorate('hashPassword', async (password: string) => {
-    return argon2.hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
-  });
-
-  app.decorate('verifyPassword', async (password: string, hash: string) => {
-    return argon2.verify(hash, password);
-  });
+  // Password hashing helpers (decorated on app for internal use)
+  app.decorate('hashPassword', hashPassword);
+  app.decorate('verifyPassword', verifyPassword);
 };
 
 export default authPlugin;

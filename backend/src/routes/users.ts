@@ -4,7 +4,7 @@
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { hashPassword, verifyPassword } from '../plugins/auth';
+import { hashPassword, verifyPassword } from '../plugins/auth.js';
 
 const userListItemSchema = z.object({
   id: z.string(),

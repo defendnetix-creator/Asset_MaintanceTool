@@ -5,7 +5,7 @@ import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { hashPassword, verifyPassword } from '../plugins/auth';
+import { hashPassword, verifyPassword } from '../plugins/auth.js';
 
 const loginResponse = z.object({
   user: z.object({
