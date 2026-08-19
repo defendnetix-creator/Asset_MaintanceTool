@@ -98,7 +98,6 @@ export const assetUpdateSchema = z.object({
   currency: z.string().length(3).optional(),
   warranty_expires: z.string().datetime().optional().nullable(),
   vendor_id: z.string().uuid().optional().nullable(),
-  condition: z.string().max(50).optional().nullable(),
   custom_fields: z.record(z.unknown()).optional(),
 });
 
@@ -111,8 +110,6 @@ export const userCreateSchema = z.object({
   title: z.string().max(100).optional(),
   role: z.enum(['IT_ASSET_MANAGER', 'FIELD_TECHNICIAN', 'EMPLOYEE', 'AUDITOR', 'READ_ONLY']),
   group_ids: z.array(z.string().uuid()).optional(),
-  phone: z.string().optional(),
-  title: z.string().optional(),
   department_id: z.string().uuid().optional(),
 });
 
@@ -503,8 +500,4 @@ export const validationSchemas = {
   testNotification: testNotificationSchema,
   settings: settingsSchema,
   tenantSettings: tenantSettingsSchema,
-  pagination: paginationSchema,
-  sort: sortSchema,
-  filter: filterSchema,
-  dateRange: dateRangeSchema,
 };

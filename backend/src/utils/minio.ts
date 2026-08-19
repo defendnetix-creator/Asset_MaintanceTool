@@ -1,7 +1,7 @@
 // backend/src/utils/minio.ts
 // MinIO client utility
 
-import { MinioClient as Minio } from 'minio';
+import { Client as Minio } from 'minio';
 
 export class MinioClient {
   private client: Minio;
@@ -22,11 +22,11 @@ export class MinioClient {
     if (!exists) {
       await this.client.makeBucket(bucketName, process.env.MINIO_REGION || 'us-east-1');
       // Set bucket policy for versioning
-      await this.client.setBucketVersioning(bucketName, 'Enabled');
+      await this.client.setBucketVersioning(bucketName, { status: 'Enabled' });
     }
   }
 
-  async putObject(bucketName: string, objectName: string, stream: NodeJS.ReadableStream, metaData?: any): Promise<void> {
+  async putObject(bucketName: string, objectName: string, stream: any, metaData?: any): Promise<void> {
     await this.ensureBucket(bucketName);
     await this.client.putObject(bucketName, objectName, stream, metaData);
   }

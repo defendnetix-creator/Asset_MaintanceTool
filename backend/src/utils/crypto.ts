@@ -42,7 +42,7 @@ export function verifyHMAC(data: string, signature: string, secret: string): boo
   return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
-export function generateApiKey(prefix: string = 'amt'): { key: string; prefix: string; hash: string } {
+export async function generateApiKey(prefix: string = 'amt'): Promise<{ key: string; prefix: string; hash: string }> {
   const key = `${prefix}_${randomBytes(24).toString('base64url')}`;
   const hash = await hashPassword(key);
   return { key, prefix: key.slice(0, 8), hash };
