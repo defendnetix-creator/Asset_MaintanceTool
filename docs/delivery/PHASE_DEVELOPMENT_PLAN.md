@@ -2,7 +2,7 @@
 
 **Goal:** 99% feature-complete application (not deployment)
 **Repository:** https://github.com/defendnetix-creator/Asset_MaintanceTool
-**Current State:** Foundation blueprint complete, Prisma generates ✓, Route TypeScript errors fixed ✓, Auth plugin fixed ✓, Infrastructure plugins fixed ✓, Remaining errors in route implementations
+**Current State:** Foundation blueprint complete, Prisma generates ✓, Route TypeScript errors fixed ✓, Auth plugin fixed ✓, Infrastructure plugins fixed ✓, Auth routes fixed ✓, Remaining errors in other route implementations
 
 ---
 
@@ -28,47 +28,29 @@
 - [x] Private GitHub repo with all artifacts
 - [x] Documentation (PRDs, ADRs, Stitch prompts, Evidence Index)
 - [x] Backend scaffold (Fastify + plugins + 16 route modules)
-- [x] **All 16 Route Files** ✅ **TypeScript errors FIXED**
-  - auth.ts ✅
-  - assets.ts ✅
-  - audits.ts ✅
-  - categories.ts ✅
-  - contracts.ts ✅
-  - departments.ts ✅
-  - documents.ts ✅
-  - maintenance.ts ✅
-  - notifications.ts ✅
-  - reports.ts ✅
-  - settings.ts ✅
-  - sites.ts ✅
-  - users.ts ✅
-  - webhooks.ts ✅
-  - agents.ts ✅
-  - admin.ts ✅
-- [x] **Auth Plugin** ✅ **COMPLETE**
-  - argon2 imports working
-  - isPublicRoute moved inside plugin
-  - tenant_id field mapping fixed
-- [x] **BullMQ** ✅ v5 compatible (no QueueScheduler)
-- [x] **Plugin Index** ✅ ES module imports with `.js` extensions
-- [x] **Routes Index** ✅ ES module imports with `.js` extensions
-- [x] **Middleware** ✅ Type declarations unified in `src/types/fastify.d.ts`
+- [x] **All 16 Route Files** ✅ **Structure fixed** (ES module imports)
+- [x] **Auth Plugin** ✅ **COMPLETE** (argon2, exports hashPassword/verifyPassword)
+- [x] **Auth Routes** ✅ **Prisma field names fixed** (tenant_id)
+- [x] **BullMQ** ✅ v5 compatible
+- [x] **Plugin/Route Index** ✅ ES module imports with `.js`
+- [x] **Middleware** ✅ Unified in `src/types/fastify.d.ts`
 - [x] **Rate Limit Plugin** ✅ Removed `errorMessage` option
-- [x] Auth Dependencies ✅ `@fastify/jwt`, `@fastify/cookie`, `argon2` installed
-- [x] Missing Plugin Dependencies ✅ `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit`, `@fastify/multipart`, `ioredis`, `redis`, `@types/ws` installed
-- [x] Frontend scaffold (React 18 + Vite + Tailwind + PWA + 15 pages)
-- [x] Docker infrastructure (PostgreSQL, Redis, MinIO, Caddy, Prometheus/Grafana)
-- [x] **Unified Type Declarations** ✅ `src/types/fastify.d.ts` created
-- [x] **Tenant Middleware** ✅ `src/middleware/tenant-middleware.ts` created for RLS
 - [x] **Upload Plugin** ✅ Fixed multipart types
-- [x] **WebSocket Plugin** ✅ Fixed types (removed WebSocket import conflicts)
+- [x] **WebSocket Plugin** ✅ Fixed types
 - [x] **Tracing Plugin** ✅ Simplified (disabled for Phase 1)
 - [x] **Metrics Plugin** ✅ Fixed unknown type
+- [x] **Tenant Middleware** ✅ Created for RLS
+- [x] **Unified Type Declarations** ✅ `src/types/fastify.d.ts` created
+- [x] **Validation Utils** ✅ Fixed duplicates
+- [x] **Email/MinIO/Crypto Utils** ✅ Fixed imports and types
+- [x] Auth Dependencies ✅ All installed
 
 ### Remaining for Phase 1 Completion (~10%)
 | Task | Blocker |
 |------|---------|
-| **Route Implementation TypeScript** | ~780 errors in routes using `request.user`, `request.body`, `request.query` - need type assertions or Zod parsing |
+| **Route Implementation TypeScript** | ~750 errors in routes using `request.user`, `request.body`, `request.query` - need type assertions or Zod parsing |
+| **Prisma field names in routes** | `tenantId` vs `tenant_id` in selects/where clauses across 15 route files |
+| **Missing Fastify methods** | `refreshJwt`, `refreshJwtVerify`, `setCookie` in routes |
 | **Database Migrations** | Need Docker services running first |
 | **Dev Environment** | `docker-compose up` → migrations → `npm run dev` untested |
 | **Build Verification** | `npm run build` not passing end-to-end |
@@ -310,9 +292,11 @@
 
 ## Current Blockers (Phase 1 Completion)
 
-1. **Route TypeScript (~780 errors)** - Routes use `request.user`, `request.body`, `request.query` without proper typing
-2. **Database not running** - Need Docker Compose to start PostgreSQL/Redis/MinIO
-3. **Migrations not run** - Need `npx prisma migrate dev --name init` after DB is up
+1. **Route TypeScript (~750 errors)** - Routes use `request.user`, `request.body`, `request.query` without proper typing
+2. **Prisma field names in routes** - `tenantId` vs `tenant_id` in selects/where clauses across 15 route files
+3. **Missing Fastify methods** - `refreshJwt`, `refreshJwtVerify`, `setCookie` in routes
+4. **Database not running** - Need Docker Compose to start PostgreSQL/Redis/MinIO
+5. **Migrations not run** - Need `npx prisma migrate dev --name init` after DB is up
 
 ---
 
@@ -326,10 +310,11 @@ docker-compose up -d postgres redis minio
 # 2. Run Prisma migrations
 cd backend && npx prisma migrate dev --name init
 
-# 3. Fix route TypeScript errors (bulk fix with type assertions)
+# 3. Fix route TypeScript errors (systematic):
+#    - Bulk replace `tenantId` → `tenant_id` in Prisma queries across all routes
 #    - Add type guards for request.user
 #    - Use Zod parsing for request.body/query
-#    - Fix Prisma include/select types
+#    - Fix Fastify method calls (remove refreshJwt, use single jwt)
 
 # 4. Build and start dev
 npm run build
@@ -348,17 +333,20 @@ cd ../frontend && npm run build && npm run dev  # :3000
 | Prisma schema | ✅ Generates successfully with tenant status |
 | GitHub repo | ✅ All artifacts pushed to `docs/foundation-blueprint` |
 | Phase 1 plan | ✅ Created and updated |
-| **16 Route files TypeScript** | ✅ **ALL FIXED** |
-| **Auth Plugin** | ✅ **COMPLETE** (argon2, isPublicRoute inside plugin) |
+| **16 Route files TypeScript** | ✅ **Structure fixed** (ES module imports) |
+| **Auth Plugin** | ✅ **COMPLETE** (argon2, exports hashPassword/verifyPassword) |
+| **Auth Routes** | ✅ **Prisma field names fixed** (tenant_id) |
 | **BullMQ** | ✅ v5 compatible (no QueueScheduler) |
 | **Plugin/Route Index** | ✅ ES module imports with `.js` |
 | **Rate Limit Plugin** | ✅ Removed `errorMessage` |
 | **Middleware** | ✅ Type declarations unified in `src/types/fastify.d.ts` |
 | **Upload Plugin** | ✅ Fixed multipart types |
-| **WebSocket Plugin** ✅ | Fixed types (removed WebSocket import conflicts) |
-| **Tracing Plugin** ✅ | Simplified (disabled for Phase 1) |
-| **Metrics Plugin** ✅ | Fixed unknown type |
-| **Tenant Middleware** ✅ | Created for RLS |
+| **WebSocket Plugin** | ✅ Fixed types (removed WebSocket import conflicts) |
+| **Tracing Plugin** | ✅ Simplified (disabled for Phase 1) |
+| **Metrics Plugin** | ✅ Fixed unknown type |
+| **Tenant Middleware** | ✅ Created for RLS |
+| **Validation Utils** | ✅ Fixed duplicates |
+| **Email/MinIO/Crypto Utils** | ✅ Fixed imports and types |
 | Auth Dependencies | ✅ Installed |
 | Missing Plugin Dependencies | ✅ Installed |
 | Backend scaffold | ✅ Complete (needs route TypeScript fixes) |
@@ -368,3 +356,4 @@ cd ../frontend && npm run build && npm run dev  # :3000
 | Evidence Index | ✅ 19 files classified |
 | PRDs (Biz + Tech) | ✅ Markdown + DOCX + PDF |
 | ADRs | ✅ 5 decisions documented |
+| TypeScript errors | ✅ Reduced from ~1300 → **758** |
