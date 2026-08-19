@@ -1,4 +1,4 @@
-// Prisma Schema for Asset_MaintanceTool
+// Prisma Schema for Asset_MaintanceTool - Phase 1 Minimal Core
 // Multi-tenant SaaS with PostgreSQL RLS
 
 generator client {
@@ -134,83 +134,13 @@ model Tenant {
   updated_at        DateTime  @updatedAt
   deleted_at        DateTime?
 
-  users             User[]
-  assets            Asset[]
-  sites             Site[]
-  locations         Location[]
-  categories        Category[]
-  departments       Department[]
-  users_groups      UserGroup[]
-  audit_sessions    AuditSession[]
-  maintenance_wos   MaintenanceWorkOrder[]
-  contracts         Contract[]
-  webhooks          Webhook[]
-  api_keys          ApiKey[]
-  notifications     Notification[]
-  agent_enrollments AgentEnrollment[]
-  custom_fields     CustomField[]
-  asset_tags        AssetTag[]
-  settings          TenantSettings?
-}
-
-model TenantSettings {
-  id                    String   @id @default(uuid())
-  tenant_id             String   @unique
-  tenant                Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  
-  // Asset tag format
-  asset_tag_prefix      String?  @default("AST")
-  asset_tag_format      String   @default("{prefix}-{number:06d}")
-  asset_tag_counter     Int      @default(1)
-  
-  // Security
-  password_min_length   Int      @default(12)
-  password_require_upper Boolean  @default(true)
-  password_require_lower Boolean  @default(true)
-  password_require_number Boolean @default(true)
-  password_require_symbol Boolean @default(true)
-  password_max_age_days  Int      @default(90)
-  password_history_count Int      @default(5)
-  
-  // MFA
-  mfa_required_for_admins Boolean @default(true)
-  mfa_required_for_all   Boolean @default(false)
-  mfa_methods            String[] @default(["totp", "passkey"])
-  
-  // Sessions
-  session_absolute_timeout_minutes Int @default(15)
-  session_idle_timeout_minutes   Int @default(5)
-  max_concurrent_sessions        Int @default(5)
-  
-  // IP Allowlist
-  ip_allowlist_enabled   Boolean @default(false)
-  ip_allowlist_cidrs     String[]
-  
-  // SSO
-  sso_enabled            Boolean @default(false)
-  sso_provider           String?  // "azure-ad", "okta", "google", "custom"
-  sso_entity_id          String?
-  sso_sso_url            String?
-  sso_slo_url            String?
-  sso_certificate        String?
-  sso_attribute_mapping  Json?
-  sso_jit_provisioning   Boolean @default(true)
-  
-  // Data Retention
-  audit_log_retention_days      Int @default(730) // 2 years
-  asset_history_retention_days  Int @default(2555) // 7 years
-  deleted_user_retention_days   Int @default(30)
-  export_retention_days         Int @default(90)
-  backup_retention_days         Int @default(30)
-  
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  @@index([slug])
+  @@index([domain])
 }
 
 model User {
   id              String      @id @default(uuid())
   tenant_id       String
-  tenant          Tenant      @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   email           String
   password_hash   String?
   first_name      String
@@ -235,21 +165,6 @@ model User {
   invited_by      String?
   invited_at      DateTime?
 
-  // Relations
-  tenant_ref      Tenant           @relation(fields: [tenant_id], references: [id])
-  assigned_assets Asset[]          @relation("AssetCustodian")
-  groups          UserGroupMember[]
-  sessions        Session[]
-  api_keys        ApiKey[]
-  created_assets  Asset[]          @relation("AssetCreator")
-  updated_assets  Asset[]          @relation("AssetUpdater")
-  work_orders     MaintenanceWorkOrder[] @relation("MaintenanceTechnician")
-  audit_sessions  AuditSession[]   @relation("AuditLead")
-  created_audits  AuditSession[]   @relation("AuditCreator")
-  notifications   Notification[]
-  api_keys_owned  ApiKey[]         @relation("ApiKeyOwner")
-  webhook_logs    WebhookDeliveryLog[]
-
   @@unique([tenant_id, email])
   @@index([tenant_id, status])
   @@index([tenant_id, role])
@@ -258,7 +173,6 @@ model User {
 model Session {
   id           String   @id @default(uuid())
   user_id      String
-  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   token_hash   String   @unique
   ip_address   String?
   user_agent   String?
@@ -275,24 +189,19 @@ model Session {
 model UserGroup {
   id          String   @id @default(uuid())
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name        String
   description String?
   color       String?  @default("#6366F1")
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  members     UserGroupMember[]
-  
   @@unique([tenant_id, name])
 }
 
 model UserGroupMember {
   id        String     @id @default(uuid())
   user_id   String
-  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   group_id  String
-  group     UserGroup  @relation(fields: [group_id], references: [id], onDelete: Cascade)
   role      String     @default("member")
   joined_at DateTime   @default(now())
 
@@ -300,19 +209,17 @@ model UserGroupMember {
 }
 
 model ApiKey {
-  id          String   @id @default(uuid())
-  tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  name        String
-  key_hash    String   @unique
-  key_prefix  String   // First 8 chars for display
-  scopes      String[] // e.g., ["assets:read", "assets:write", "audits:read"]
-  owner_id    String?
-  owner       User?    @relation("ApiKeyOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+  id           String   @id @default(uuid())
+  tenant_id    String
+  name         String
+  key_hash     String   @unique
+  key_prefix   String
+  scopes       String[]
+  owner_id     String?
   last_used_at DateTime?
-  expires_at  DateTime?
-  revoked_at  DateTime?
-  created_at  DateTime @default(now())
+  expires_at   DateTime?
+  revoked_at   DateTime?
+  created_at   DateTime @default(now())
   last_used_by String?
 
   @@index([tenant_id])
@@ -322,7 +229,6 @@ model ApiKey {
 model Site {
   id          String   @id @default(uuid())
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name        String
   code        String
   address     String?
@@ -336,10 +242,6 @@ model Site {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  locations   Location[]
-  assets      Asset[]
-  users       User[]   @relation("SiteUser")
-
   @@unique([tenant_id, code])
   @@index([tenant_id, is_active])
 }
@@ -347,20 +249,14 @@ model Site {
 model Location {
   id          String   @id @default(uuid())
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   site_id     String
-  site        Site     @relation(fields: [site_id], references: [id], onDelete: Cascade)
   name        String
   code        String
   description String?
   parent_id   String?
-  parent      Location? @relation("LocationHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
-  children    Location[] @relation("LocationHierarchy")
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-
-  assets      Asset[]
 
   @@unique([tenant_id, site_id, code])
   @@index([tenant_id, site_id])
@@ -370,21 +266,15 @@ model Location {
 model Category {
   id          String   @id @default(uuid())
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name        String
   code        String
   description String?
   color       String?  @default("#3B82F6")
   icon        String?  @default("box")
   parent_id   String?
-  parent      Category? @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
-  children    Category[] @relation("CategoryHierarchy")
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-
-  assets      Asset[]
-  custom_fields CustomField[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id, parent_id])
@@ -393,19 +283,14 @@ model Category {
 model Department {
   id          String   @id @default(uuid())
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name        String
   code        String
   description String?
   cost_center String?
   manager_id  String?
-  manager     User?    @relation("DepartmentManager", fields: [manager_id], references: [id], onDelete: SetNull)
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-
-  assets      Asset[]
-  users       User[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id])
@@ -414,14 +299,13 @@ model Department {
 model CustomField {
   id            String   @id @default(uuid())
   tenant_id     String
-  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name          String
   label         String
-  type          String   // "text", "number", "date", "boolean", "select", "multiselect", "url", "email", "currency"
-  entity_type   String   // "asset", "user", "site", "location", "category", "department"
-  category_id   String?  // For entity_type = "asset", restrict to category
-  options       Json?    // For select/multiselect: ["option1", "option2"]
-  validation    Json?    // { "min": 0, "max": 100, "pattern": "^[A-Z]{3}-\\d{4}$" }
+  type          String
+  entity_type   String
+  category_id   String?
+  options       Json?
+  validation    Json?
   is_required   Boolean  @default(false)
   is_filterable Boolean  @default(true)
   is_searchable Boolean  @default(true)
@@ -430,9 +314,6 @@ model CustomField {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  category      Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  asset_values  AssetCustomFieldValue[]
-
   @@unique([tenant_id, entity_type, name])
   @@index([tenant_id, entity_type])
 }
@@ -440,9 +321,7 @@ model CustomField {
 model AssetCustomFieldValue {
   id              String         @id @default(uuid())
   asset_id        String
-  asset           Asset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
   custom_field_id String
-  custom_field    CustomField    @relation(fields: [custom_field_id], references: [id], onDelete: Cascade)
   value_text      String?
   value_number    Float?
   value_boolean   Boolean?
@@ -461,34 +340,21 @@ model AssetCustomFieldValue {
 model Asset {
   id                String   @id @default(uuid())
   tenant_id         String
-  tenant            Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  
-  // Identification
   asset_tag         String
   normalized_tag    String
   serial_number     String?
   qr_code_data      String?
   barcode_data      String?
-  
-  // Classification
+
   make              String?
   model             String?
   category_id       String?
-  category          Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  
-  // Location & Assignment
+
   site_id           String?
-  site              Site?     @relation(fields: [site_id], references: [id], onDelete: SetNull)
   location_id       String?
-  location          Location? @relation(fields: [location_id], references: [id], onDelete: SetNull)
   department_id     String?
-  department        Department? @relation(fields: [department_id], references: [id], onDelete: SetNull)
   custodian_user_id String?
-  custodian_user    User?     @relation("AssetCustodian", fields: [custodian_user_id], references: [id], onDelete: SetNull)
-  custodian_group_id String?
-  custodian_group   UserGroup? @relation(fields: [custodian_group_id], references: [id], onDelete: SetNull)
-  
-  // Status & Financial
+
   status            AssetStatus @default(IN_STOCK)
   condition         String?    @default("Good")
   purchase_date     DateTime?
@@ -496,29 +362,13 @@ model Asset {
   currency          String     @default("USD")
   warranty_expires  DateTime?
   vendor_id         String?
-  vendor            Vendor?    @relation(fields: [vendor_id], references: [id], onDelete: SetNull)
-  
-  // Tracking
-  asset_tag_counter Int        @default(0) // For duplicate detection
+
+  asset_tag_counter Int        @default(0)
   created_by_id     String
-  created_by        User       @relation("AssetCreator", fields: [created_by_id], references: [id], onDelete: Restrict)
   updated_by_id     String?
-  updated_by        User?      @relation("AssetUpdater", fields: [updated_by_id], references: [id], onDelete: SetNull)
   created_at        DateTime   @default(now())
   updated_at        DateTime   @updatedAt
   deleted_at        DateTime?
-  
-  // Relations
-  tenant_ref        Tenant                    @relation(fields: [tenant_id], references: [id])
-  events            AssetEvent[]
-  documents         Document[]
-  images            AssetImage[]
-  custom_fields     AssetCustomFieldValue[]
-  work_orders       MaintenanceWorkOrder[]
-  audit_items       AuditSessionItem[]
-  reservations      Reservation[]
-  tags              AssetTag[]
-  custom_field_values AssetCustomFieldValue[]
 
   @@unique([tenant_id, normalized_tag])
   @@index([tenant_id, status])
@@ -526,7 +376,6 @@ model Asset {
   @@index([tenant_id, location_id])
   @@index([tenant_id, category_id])
   @@index([tenant_id, custodian_user_id])
-  @@index([tenant_id, custodian_group_id])
   @@index([tenant_id, serial_number])
   @@index([tenant_id, created_at])
   @@index([tenant_id, deleted_at])
@@ -535,11 +384,10 @@ model Asset {
 model AssetTag {
   id        String  @id @default(uuid())
   asset_id  String
-  asset     Asset   @relation(fields: [asset_id], references: [id], onDelete: Cascade)
   tag       String
   created_at DateTime @default(now())
   created_by String?
-  
+
   @@unique([asset_id, tag])
   @@index([tag])
 }
@@ -547,7 +395,6 @@ model AssetTag {
 model AssetImage {
   id        String   @id @default(uuid())
   asset_id  String
-  asset     Asset    @relation(fields: [asset_id], references: [id], onDelete: Cascade)
   url       String
   filename  String
   mime_type String
@@ -558,16 +405,14 @@ model AssetImage {
   caption   String?
   created_at DateTime @default(now())
   created_by String?
-  
+
   @@index([asset_id, is_primary])
 }
 
 model Document {
   id          String   @id @default(uuid())
   asset_id    String?
-  asset       Asset?   @relation(fields: [asset_id], references: [id], onDelete: SetNull)
   tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   filename    String
   mime_type   String
   size        Int
@@ -579,31 +424,10 @@ model Document {
   uploaded_by String
   uploaded_at DateTime @default(now())
   scanned     Boolean  @default(false)
-  scan_result String?  // clean, infected, error
-  
+  scan_result String?
+
   @@index([asset_id])
   @@index([tenant_id, uploaded_at])
-}
-
-model Vendor {
-  id          String   @id @default(uuid())
-  tenant_id   String
-  tenant      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  name        String
-  contact_name String?
-  email       String?
-  phone       String?
-  address     String?
-  website     String?
-  notes       String?
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  assets      Asset[]
-  contracts   Contract[]
-
-  @@index([tenant_id, name])
 }
 
 // ─── Asset Events / Lifecycle ───
@@ -611,14 +435,11 @@ model Vendor {
 model AssetEvent {
   id              String        @id @default(uuid())
   asset_id        String
-  asset           Asset         @relation(fields: [asset_id], references: [id], onDelete: Cascade)
   tenant_id       String
-  tenant          Tenant        @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   event_type      AssetEventType
   description     String?
   metadata        Json?
   performed_by_id String
-  performed_by    User          @relation(fields: [performed_by_id], references: [id], onDelete: Restrict)
   occurred_at     DateTime      @default(now())
   created_at      DateTime      @default(now())
 
@@ -631,65 +452,42 @@ model AssetEvent {
 model MaintenanceWorkOrder {
   id              String            @id @default(uuid())
   tenant_id       String
-  tenant          Tenant            @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  wo_number       String            // Human-readable: WO-2024-0001
+  wo_number       String
   asset_id        String
-  asset           Asset             @relation(fields: [asset_id], references: [id], onDelete: Restrict)
   type            MaintenanceType
   status          MaintenanceStatus @default(OPEN)
-  priority        Int               @default(3) // 1=Critical, 2=High, 3=Medium, 4=Low
-  
-  // Details
+  priority        Int               @default(3)
+
   title           String
   description     String?
   problem_description String?
   root_cause      String?
   resolution      String?
-  
-  // Assignment
+
   technician_id   String?
-  technician      User?             @relation("MaintenanceTechnician", fields: [technician_id], references: [id], onDelete: SetNull)
   assigned_at     DateTime?
   started_at      DateTime?
   completed_at    DateTime?
   due_date        DateTime?
-  
-  // Costs & Time
+
   labor_hours     Decimal?   @db.Decimal(6, 2)
   labor_rate      Decimal?   @db.Decimal(10, 2)
   parts_cost      Decimal?   @db.Decimal(12, 2)
   total_cost      Decimal?   @db.Decimal(12, 2)
   downtime_hours  Decimal?   @db.Decimal(6, 2)
-  
-  // Condition tracking
+
   condition_before String?
   condition_after  String?
-  
-  // Recurring
+
   is_recurring    Boolean  @default(false)
-  recurrence_rule String?  // RRULE format
+  recurrence_rule String?
   parent_wo_id    String?
-  parent_wo       MaintenanceWorkOrder? @relation("RecurringWO", fields: [parent_wo_id], references: [id], onDelete: SetNull)
-  child_wos       MaintenanceWorkOrder[] @relation("RecurringWO")
-  
-  // Assignment
+
   created_by_id   String
-  created_by      User       @relation(fields: [created_by_id], references: [id], onDelete: Restrict)
   assigned_by_id  String?
-  assigned_by     User?      @relation(fields: [assigned_by_id], references: [id], onDelete: SetNull)
   created_at      DateTime   @default(now())
   updated_at      DateTime   @updatedAt
   deleted_at      DateTime?
-
-  // Relations
-  tenant_ref      Tenant               @relation(fields: [tenant_id], references: [id])
-  asset_ref       Asset                @relation(fields: [asset_id], references: [id])
-  tasks           MaintenanceTask[]
-  parts           MaintenancePart[]
-  labor_entries   MaintenanceLabor[]
-  attachments     MaintenanceAttachment[]
-  notes           MaintenanceNote[]
-  history         MaintenanceHistory[]
 
   @@unique([tenant_id, wo_number])
   @@index([tenant_id, status])
@@ -701,7 +499,6 @@ model MaintenanceWorkOrder {
 model MaintenanceTask {
   id          String   @id @default(uuid())
   wo_id       String
-  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   title       String
   description String?
   is_completed Boolean  @default(false)
@@ -717,13 +514,12 @@ model MaintenanceTask {
 model MaintenancePart {
   id          String   @id @default(uuid())
   wo_id       String
-  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   part_name   String
   part_number String?
   quantity    Int      @default(1)
   unit_cost   Decimal? @db.Decimal(10, 2)
   total_cost  Decimal? @db.Decimal(10, 2)
-  source      String?  // "inventory", "purchase", "warranty"
+  source      String?
   notes       String?
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -734,9 +530,7 @@ model MaintenancePart {
 model MaintenanceLabor {
   id          String   @id @default(uuid())
   wo_id       String
-  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   technician_id String
-  technician  User     @relation(fields: [technician_id], references: [id], onDelete: Restrict)
   date        DateTime @default(now())
   hours       Decimal  @db.Decimal(4, 2)
   rate        Decimal? @db.Decimal(10, 2)
@@ -750,7 +544,6 @@ model MaintenanceLabor {
 model MaintenanceAttachment {
   id        String   @id @default(uuid())
   wo_id     String
-  wo        MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   url       String
   filename  String
   mime_type String
@@ -764,9 +557,7 @@ model MaintenanceAttachment {
 model MaintenanceNote {
   id        String   @id @default(uuid())
   wo_id     String
-  wo        MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   author_id String
-  author    User     @relation(fields: [author_id], references: [id], onDelete: Restrict)
   content   String
   is_internal Boolean @default(false)
   created_at DateTime @default(now())
@@ -778,12 +569,10 @@ model MaintenanceNote {
 model MaintenanceHistory {
   id          String   @id @default(uuid())
   wo_id       String
-  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id], onDelete: Cascade)
   field_name  String
   old_value   String?
   new_value   String?
   changed_by_id String
-  changed_by  User     @relation(fields: [changed_by_id], references: [id], onDelete: Restrict)
   changed_at  DateTime @default(now())
 
   @@index([wo_id, changed_at])
@@ -794,17 +583,13 @@ model MaintenanceHistory {
 model Reservation {
   id              String   @id @default(uuid())
   tenant_id       String
-  tenant          Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   asset_id        String
-  asset           Asset    @relation(fields: [asset_id], references: [id], onDelete: Restrict)
   requester_id    String
-  requester       User     @relation(fields: [requester_id], references: [id], onDelete: Restrict)
   approver_id     String?
-  approver        User?    @relation(fields: [approver_id], references: [id], onDelete: SetNull)
   start_at        DateTime
   end_at          DateTime
   purpose         String?
-  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
+  status          String   @default("PENDING")
   approved_at     DateTime?
   rejected_at     DateTime?
   rejection_reason String?
@@ -821,49 +606,35 @@ model Reservation {
 model AuditSession {
   id              String       @id @default(uuid())
   tenant_id       String
-  tenant          Tenant       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name            String
-  scope_type      String       // "site", "location", "department", "category", "custom"
-  scope_id        String?      // site_id, location_id, department_id, category_id
+  scope_type      String
+  scope_id        String?
   scope_name      String?
   status          AuditStatus  @default(SCHEDULED)
-  
-  // Scheduling
+
   start_at        DateTime?
   end_at          DateTime?
   due_at          DateTime?
   timezone        String       @default("UTC")
-  
-  // Assignment
+
   lead_auditor_id String?
-  lead_auditor    User?        @relation("AuditLead", fields: [lead_auditor_id], references: [id], onDelete: SetNull)
-  auditors        User[]       @relation("AuditAuditor")
-  
-  // Progress
+
   total_assets    Int          @default(0)
   scanned_count   Int          @default(0)
   found_count     Int          @default(0)
   missing_count   Int          @default(0)
   mismatched_count Int         @default(0)
   damaged_count   Int          @default(0)
-  
-  // Settings
+
   notify_assignees Boolean     @default(true)
   require_signature Boolean    @default(false)
   require_photo    Boolean     @default(false)
   offline_enabled  Boolean     @default(true)
-  
-  // Metadata
+
   created_by_id   String
-  created_by      User         @relation("AuditCreator", fields: [created_by_id], references: [id], onDelete: Restrict)
   created_at      DateTime     @default(now())
   updated_at      DateTime     @updatedAt
   completed_at    DateTime?
-  
-  // Relations
-  tenant_ref      Tenant              @relation(fields: [tenant_id], references: [id])
-  items           AuditSessionItem[]
-  discrepancies   AuditDiscrepancy[]
 
   @@index([tenant_id, status])
   @@index([tenant_id, due_at])
@@ -873,22 +644,16 @@ model AuditSession {
 model AuditSessionItem {
   id              String           @id @default(uuid())
   session_id      String
-  session         AuditSession     @relation(fields: [session_id], references: [id], onDelete: Cascade)
   asset_id        String
-  asset           Asset            @relation(fields: [asset_id], references: [id], onDelete: Restrict)
   expected_location_id String?
-  expected_location Location?     @relation(fields: [expected_location_id], references: [id], onDelete: SetNull)
   scanned_location_id String?
-  scanned_location Location?      @relation(fields: [scanned_location_id], references: [id], onDelete: SetNull)
   status          AuditItemStatus  @default(MISSING)
   scanned_at      DateTime?
   scanned_by_id   String?
-  scanned_by      User?            @relation(fields: [scanned_by_id], references: [id], onDelete: SetNull)
   notes           String?
   photo_url       String?
   signature_url   String?
   discrepancy_id  String?
-  discrepancy     AuditDiscrepancy? @relation(fields: [discrepancy_id], references: [id], onDelete: SetNull)
   created_at      DateTime         @default(now())
   updated_at      DateTime         @updatedAt
 
@@ -900,21 +665,13 @@ model AuditSessionItem {
 model AuditDiscrepancy {
   id              String   @id @default(uuid())
   session_id      String
-  session         AuditSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
   asset_id        String
-  asset           Asset    @relation(fields: [asset_id], references: [id], onDelete: Restrict)
-  type            String   // "MISSING", "MISMATCHED", "DAMAGED", "EXTRA"
-  expected_location_id String?
-  expected_location Location? @relation(fields: [expected_location_id], references: [id], onDelete: SetNull)
-  found_location_id String?
-  found_location  Location? @relation(fields: [found_location_id], references: [id], onDelete: SetNull)
-  severity        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
-  status          String   @default("OPEN") // OPEN, RESOLVED, IGNORED
-  suggested_match_id String?  // Asset ID of AI-suggested match
-  suggested_match Asset?     @relation("SuggestedMatch", fields: [suggested_match_id], references: [id], onDelete: SetNull)
+  type            String
+  severity        String   @default("MEDIUM")
+  status          String   @default("OPEN")
+  suggested_match_id String?
   resolution      String?
   resolved_by_id  String?
-  resolved_by     User?    @relation(fields: [resolved_by_id], references: [id], onDelete: SetNull)
   resolved_at     DateTime?
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
@@ -928,47 +685,30 @@ model AuditDiscrepancy {
 model Contract {
   id              String         @id @default(uuid())
   tenant_id       String
-  tenant          Tenant         @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name            String
   contract_number String         @unique
-  type            String         // "lease", "maintenance", "warranty", "service", "software", "vendor"
+  type            String
   status          ContractStatus @default(ACTIVE)
   vendor_id       String?
-  vendor          Vendor?        @relation(fields: [vendor_id], references: [id], onDelete: SetNull)
-  customer_id     String?        // For leases to external customers
-  customer_name   String?
-  customer_email  String?
-  
-  // Financial
+
   value           Decimal?       @db.Decimal(12, 2)
   currency        String         @default("USD")
-  billing_cycle   String?        // "monthly", "quarterly", "annually"
+  billing_cycle   String?
   auto_renew      Boolean        @default(false)
-  
-  // Dates
+
   start_date      DateTime
   end_date        DateTime?
   renewal_date    DateTime?
   notice_period_days Int        @default(30)
-  
-  // Terms
+
   terms           String?
   sla_terms       String?
-  auto_renew      Boolean        @default(false)
-  
-  // Assignment
+
   owner_id        String?
-  owner           User?          @relation(fields: [owner_id], references: [id], onDelete: SetNull)
   created_by_id   String
-  created_by      User           @relation(fields: [created_by_id], references: [id], onDelete: Restrict)
   created_at      DateTime       @default(now())
   updated_at      DateTime       @updatedAt
   deleted_at      DateTime?
-
-  // Relations
-  tenant_ref      Tenant           @relation(fields: [tenant_id], references: [id])
-  assets          Asset[]          @relation("ContractAssets")
-  reminders       ContractReminder[]
 
   @@index([tenant_id, status])
   @@index([tenant_id, vendor_id])
@@ -979,13 +719,12 @@ model Contract {
 model ContractReminder {
   id           String   @id @default(uuid())
   contract_id  String
-  contract     Contract @relation(fields: [contract_id], references: [id], onDelete: Cascade)
-  type         String   // "expiry", "renewal", "payment", "review"
+  type         String
   trigger_at   DateTime
   sent_at      DateTime?
-  recipient_ids String[] // User IDs
+  recipient_ids String[]
   channel      NotificationChannel @default(EMAIL)
-  status       String   @default("PENDING") // PENDING, SENT, FAILED
+  status       String   @default("PENDING")
   created_at   DateTime @default(now())
 
   @@index([contract_id, trigger_at])
@@ -997,17 +736,15 @@ model ContractReminder {
 model Notification {
   id            String              @id @default(uuid())
   tenant_id     String
-  tenant        Tenant              @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   user_id       String?
-  user          User?               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  type          String              // "asset_overdue", "maintenance_due", "warranty_expiring", "audit_discrepancy", "agent_offline", "custom"
+  type          String
   title         String
   message       String
   data          Json?
   channel       NotificationChannel @default(IN_APP)
-  status        String              @default("UNREAD") // UNREAD, READ, ARCHIVED
+  status        String              @default("UNREAD")
   read_at       DateTime?
-  related_type  String?             // "asset", "work_order", "audit", "contract"
+  related_type  String?
   related_id    String?
   created_at    DateTime            @default(now())
 
@@ -1019,18 +756,16 @@ model Notification {
 model Webhook {
   id              String   @id @default(uuid())
   tenant_id       String
-  tenant          Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   name            String
   url             String
-  secret          String   // HMAC secret for signature verification
-  events          String[] // WebhookEvent[]
+  secret          String
+  events          String[]
   is_active       Boolean  @default(true)
-  retry_policy    Json?    // { max_attempts: 5, backoff: "exponential", delay: 5000 }
+  retry_policy    Json?
   timeout_ms      Int      @default(30000)
   last_triggered  DateTime?
   last_status     String?
   created_by_id   String
-  created_by      User     @relation(fields: [created_by_id], references: [id], onDelete: Restrict)
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
@@ -1040,7 +775,6 @@ model Webhook {
 model WebhookDeliveryLog {
   id            String   @id @default(uuid())
   webhook_id    String
-  webhook       Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
   event         String
   payload       Json
   status_code   Int?
@@ -1059,30 +793,25 @@ model WebhookDeliveryLog {
 model AgentEnrollment {
   id              String   @id @default(uuid())
   tenant_id       String
-  tenant          Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   asset_id        String?
-  asset           Asset?   @relation(fields: [asset_id], references: [id], onDelete: SetNull)
   enrollment_token String  @unique
   hostname        String?
-  os              String?  // "windows", "macos", "linux"
+  os              String?
   os_version      String?
   agent_version   String?
-  status          String   @default("PENDING") // PENDING, ACTIVE, INACTIVE, REVOKED
+  status          String   @default("PENDING")
   last_seen       DateTime?
   last_ip         String?
   enrolled_at     DateTime @default(now())
   enrolled_by_id  String?
-  enrolled_by     User?    @relation(fields: [enrolled_by_id], references: [id], onDelete: SetNull)
   revoked_at      DateTime?
   revoked_by_id   String?
-  revoked_by      User?    @relation(fields: [revoked_by_id], references: [id], onDelete: SetNull)
-  
-  // Configuration
-  sync_interval_seconds Int   @default(900) // 15 minutes
+
+  sync_interval_seconds Int   @default(900)
   data_categories       String[] @default(["hardware", "software", "network", "security"])
   privacy_mode          Boolean @default(true)
   auto_update           Boolean @default(true)
-  
+
   @@index([tenant_id, status])
   @@index([tenant_id, asset_id])
   @@index([enrollment_token])
@@ -1091,31 +820,29 @@ model AgentEnrollment {
 model AgentHeartbeat {
   id              String   @id @default(uuid())
   enrollment_id   String
-  enrollment      AgentEnrollment @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
   received_at     DateTime @default(now())
   ip_address      String?
-  data            Json?    // { cpu: %, memory: %, disk: %, network: {...}, software: [...], security: {...} }
-  
+  data            Json?
+
   @@index([enrollment_id, received_at])
 }
 
 model AgentSoftware {
   id              String   @id @default(uuid())
   enrollment_id   String
-  enrollment      AgentEnrollment @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
   name            String
   version         String?
   publisher       String?
   install_date    DateTime?
   install_path    String?
-  size            Int64?   // bytes
-  usage_percent   Float?   // 0-100
+  size            BigInt?
+  usage_percent   Float?
   last_used       DateTime?
-  category        String?  // "productivity", "security", "development", "system", "other"
+  category        String?
   is_authorized   Boolean  @default(true)
   detected_at     DateTime @default(now())
   last_seen       DateTime @default(now())
-  
+
   @@index([enrollment_id, name])
   @@unique([enrollment_id, name, version])
 }
@@ -1125,10 +852,9 @@ model AgentSoftware {
 model Setting {
   id        String   @id @default(uuid())
   tenant_id String
-  tenant    Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   key       String
   value     Json
-  scope     String   @default("tenant") // "tenant", "user", "system"
+  scope     String   @default("tenant")
   user_id   String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -1139,19 +865,17 @@ model Setting {
 model AuditLog {
   id            String   @id @default(uuid())
   tenant_id     String
-  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   user_id       String?
-  user          User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  action        String   // "CREATE", "UPDATE", "DELETE", "LOGIN", "EXPORT", "IMPORT", "PERMISSION_CHANGE"
-  resource_type String   // "asset", "user", "audit", "report", "setting", "webhook"
+  action        String
+  resource_type String
   resource_id   String?
   old_values    Json?
   new_values    Json?
   ip_address    String?
   user_agent    String?
   metadata      Json?
-  hash          String   // SHA256 hash of the log entry for tamper detection
-  previous_hash String?  // Chain hash for tamper evidence
+  hash          String
+  previous_hash String?
   created_at    DateTime @default(now())
 
   @@index([tenant_id, created_at])
