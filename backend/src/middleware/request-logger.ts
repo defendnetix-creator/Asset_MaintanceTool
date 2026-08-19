@@ -7,7 +7,6 @@ declare module 'fastify' {
   interface FastifyRequest {
     startTime?: bigint;
     tenantId?: string;
-    user?: { id: string; tenantId: string; role: string; email: string };
   }
 }
 

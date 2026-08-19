@@ -41,7 +41,6 @@ export async function registerPlugins(app: FastifyInstance) {
     max: 100,
     timeWindow: '1 minute',
     keyGenerator: (req: any) => req.tenantId || req.ip,
-    errorMessage: 'Too many requests, please try again later.',
   });
 
   // Auth & security

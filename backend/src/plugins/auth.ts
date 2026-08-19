@@ -4,7 +4,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { fastifyJwt } from '@fastify/jwt';
 import { fastifyCookie } from '@fastify/cookie';
-import { argon2id } from 'argon2';
+import argon2 from 'argon2';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,20 +24,6 @@ const PUBLIC_KEY = process.env.JWT_PUBLIC_KEY || fs.readFileSync(path.resolve('k
 const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');
 const REFRESH_PUBLIC_KEY = process.env.JWT_REFRESH_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/refresh-public.pem'), 'utf-8');
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'change-me-in-production';
-
-function isPublicRoute(url: string): boolean {
-  const publicRoutes = [
-    '/health',
-    '/ready',
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/auth/refresh',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/auth/verify-email',
-  ];
-  return publicRoutes.some(route => url.startsWith(route));
-}
 
 export const authPlugin: FastifyPluginAsync = async (app) => {
   // Cookie parsing
@@ -68,6 +54,21 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
     verify: { algorithms: ['RS256'] },
     cookie: { cookieName: 'refreshToken', signed: false },
   });
+
+  // Public route check
+  function isPublicRoute(url: string): boolean {
+    const publicRoutes = [
+      '/health',
+      '/ready',
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/refresh',
+      '/api/auth/forgot-password',
+      '/api/auth/reset-password',
+      '/api/auth/verify-email',
+    ];
+    return publicRoutes.some(route => url.startsWith(route));
+  }
 
   // Auth hook
   app.addHook('preHandler', async (request, reply) => {
@@ -122,12 +123,10 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
 
   // Password hashing helpers
   app.decorate('hashPassword', async (password: string) => {
-    return argon2id.hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
+    return argon2.hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
   });
 
   app.decorate('verifyPassword', async (password: string, hash: string) => {
-    return argon2id.verify(hash, password);
+    return argon2.verify(hash, password);
   });
-};
-
 export default authPlugin;
