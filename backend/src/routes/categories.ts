@@ -104,12 +104,15 @@ const deleteCategorySchema = {
   response: { 200: messageResponse, 404: errorResponse },
 };
 
+const messageResponse = z.object({ message: z.string() });
+const errorResponse = z.object({ error: z.string(), code: z.string() });
+
 export async function categoryRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // List categories
   api.get('/', listCategoriesSchema, async (request) => {
-    const { page, limit, include_inactive } = request.query;
+    const { page, limit, include_inactive } = request.query as { page: number; limit: number; include_inactive?: boolean };
     const tenantId = request.tenantId!;
 
     const where: any = { tenant_id: tenantId };
@@ -152,7 +155,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       where: { tenant_id: tenantId, code: request.body.code },
     });
     if (existing) {
-      return reply.code(400).send({ error: 'Category code already exists', code: 'CODE_EXISTS' });
+      return reply.status(400).send({ error: 'Category code already exists', code: 'CODE_EXISTS' });
     }
 
     const category = await app.prisma.category.create({
@@ -162,7 +165,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       },
     });
 
-    return reply.code(201).send({
+    return reply.status(201).send({
       ...category,
       parent_name: null,
       children: [],
@@ -182,7 +185,7 @@ export async function categoryRoutes(app: FastifyInstance) {
     });
 
     if (!category) {
-      return reply.code(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
     }
 
     return {
@@ -199,7 +202,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!existing) {
-      return reply.code(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
     }
 
     // Check code uniqueness if being changed
@@ -209,7 +212,7 @@ export async function categoryRoutes(app: FastifyInstance) {
         where: { tenant_id: tenantId, code, NOT: { id: request.params.id } },
       });
       if (codeExists) {
-        return reply.code(400).send({ error: 'Category code already exists', code: 'CODE_EXISTS' });
+        return reply.status(400).send({ error: 'Category code already exists', code: 'CODE_EXISTS' });
       }
     }
 
@@ -237,7 +240,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       where: { id: request.params.id, tenant_id: tenantId },
     });
     if (!existing) {
-      return reply.code(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
+      return reply.status(404).send({ error: 'Category not found', code: 'NOT_FOUND' });
     }
 
     // Check for children
@@ -245,7 +248,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       where: { parent_id: request.params.id, tenant_id: tenantId },
     });
     if (children > 0) {
-      return reply.code(400).send({ error: 'Cannot delete category with children', code: 'HAS_CHILDREN' });
+      return reply.status(400).send({ error: 'Cannot delete category with children', code: 'HAS_CHILDREN' });
     }
 
     // Check for assets
@@ -253,7 +256,7 @@ export async function categoryRoutes(app: FastifyInstance) {
       where: { category_id: request.params.id, tenant_id: tenantId },
     });
     if (assets > 0) {
-      return reply.code(400).send({ error: 'Cannot delete category with assets', code: 'HAS_ASSETS' });
+      return reply.status(400).send({ error: 'Cannot delete category with assets', code: 'HAS_ASSETS' });
     }
 
     await app.prisma.category.delete({
