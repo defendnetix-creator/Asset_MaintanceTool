@@ -129,4 +129,6 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorate('verifyPassword', async (password: string, hash: string) => {
     return argon2.verify(hash, password);
   });
+};
+
 export default authPlugin;
