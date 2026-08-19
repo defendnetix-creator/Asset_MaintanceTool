@@ -76,7 +76,7 @@ const updateAgentInput = z.object({
 
 const regenerateTokenResponse = z.object({ enrollment_token: z.string() });
 
-const agentLogsQuery = z.object({
+const agentLogsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
   start_date: z.string().datetime().optional(),
@@ -98,7 +98,7 @@ const agentLogsResponse = z.object({
   }),
 });
 
-const agentSoftwareQuery = z.object({
+const agentSoftwareQuerySchema = z.object({
   search: z.string().optional(),
   category: z.string().optional(),
   authorized_only: z.boolean().optional(),
@@ -163,13 +163,6 @@ const regenerateTokenSchema = {
   response: { 200: regenerateTokenResponse, 404: z.object({ error: z.string(), code: z.string() }) },
 };
 
-const agentLogsQuery = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
-});
-
 const agentLogsSchema = {
   params: z.object({ id: z.string().uuid() }),
   querystring: z.object({
@@ -181,12 +174,6 @@ const agentLogsSchema = {
   response: { 200: agentLogsResponse },
 };
 
-const agentSoftwareQuery = z.object({
-  search: z.string().optional(),
-  category: z.string().optional(),
-  authorized_only: z.boolean().optional(),
-});
-
 const agentSoftwareSchema = {
   params: z.object({ id: z.string().uuid() }),
   querystring: z.object({
@@ -196,9 +183,6 @@ const agentSoftwareSchema = {
   }),
   response: { 200: agentSoftwareResponse },
 };
-
-const messageResponse = z.object({ message: z.string() });
-const errorResponse = z.object({ error: z.string(), code: z.string() });
 
 export async function agentRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
@@ -248,7 +232,7 @@ export async function agentRoutes(app: FastifyInstance) {
   // Create enrollment
   api.post('/', { schema: createAgentSchema }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
+    const userId = (request.user as { id: string })?.id;
 
     const enrollmentToken = crypto.randomBytes(32).toString('hex');
 
@@ -294,10 +278,13 @@ export async function agentRoutes(app: FastifyInstance) {
 
     await app.prisma.agentEnrollment.update({
       where: { id: request.params.id },
-      data: { status: 'REVOKED', revoked_at: new Date(), revoked_by_id: request.user!.id },
+      data: { status: 'REVOKED', revoked_at: new Date(), revoked_by_id: (request.user as { id: string }).id },
     });
 
-    await app.sendAgentCommand(enrollment.id, 'revoke', {});
+    // Send revoke command via WebSocket
+    if (app.sendAgentCommand) {
+      await app.sendAgentCommand(enrollment.id, 'revoke', {});
+    }
 
     return { message: 'Agent revoked' };
   });
@@ -341,17 +328,7 @@ export async function agentRoutes(app: FastifyInstance) {
   });
 
   // Agent software inventory
-  api.get('/:id/software', {
-    schema: {
-      params: z.object({ id: z.string().uuid() }),
-      querystring: z.object({
-        search: z.string().optional(),
-        category: z.string().optional(),
-        authorized_only: z.boolean().optional(),
-      }),
-      response: { 200: agentSoftwareResponse },
-    },
-  }, async (request) => {
+  api.get('/:id/software', { schema: agentSoftwareSchema }, async (request) => {
     const { search, category, authorized_only } = request.query;
 
     const where: Record<string, unknown> = { enrollment_id: request.params.id };
@@ -364,5 +341,3 @@ export async function agentRoutes(app: FastifyInstance) {
     return { data: software };
   });
 }
-
-export { agentRoutes };

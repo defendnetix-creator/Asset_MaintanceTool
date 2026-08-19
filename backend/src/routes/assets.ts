@@ -247,12 +247,6 @@ const importCommitSchema = {
   response: { 200: z.object({ created: z.number(), errors: z.array(z.object({ row: z.number(), error: z.string() })) }) },
 };
 
-const errorResponse = z.object({ error: z.string(), code: z.string() });
-const createAssetResponse = z.object({ id: z.string(), asset_tag: z.string() });
-const updateAssetResponse = z.object({ id: z.string() });
-const deleteAssetResponse = z.object({ message: z.string() });
-const bulkOperationResponse = z.object({ processed: z.number(), failed: z.number(), errors: z.array(z.object({ id: z.string(), error: z.string() })) });
-
 export async function assetRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
@@ -263,12 +257,12 @@ export async function assetRoutes(app: FastifyInstance) {
 
     const where: Record<string, unknown> = { tenant_id: tenantId, deleted_at: null };
 
-    if (filters.search) {
+    if (search) {
       where.OR = [
-        { asset_tag: { contains: filters.search, mode: 'insensitive' } },
-        { serial_number: { contains: filters.search, mode: 'insensitive' } },
-        { make: { contains: filters.search, mode: 'insensitive' } },
-        { model: { contains: filters.search, mode: 'insensitive' } },
+        { asset_tag: { contains: search, mode: 'insensitive' } },
+        { serial_number: { contains: search, mode: 'insensitive' } },
+        { make: { contains: search, mode: 'insensitive' } },
+        { model: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -350,7 +344,7 @@ export async function assetRoutes(app: FastifyInstance) {
   // Create asset
   api.post('/', { schema: { body: createAssetInput, response: { 201: createAssetResponse, 400: errorResponse, 409: errorResponse } } }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
+    const userId = (request.user as { id: string })?.id;
 
     const normalizedTag = request.body.asset_tag.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
 
@@ -398,7 +392,7 @@ export async function assetRoutes(app: FastifyInstance) {
         asset_tag: request.body.asset_tag,
         normalized_tag: normalizedTag,
         tenant_id: tenantId,
-        created_by_id: request.user!.id,
+        created_by_id: userId,
       },
     });
 
@@ -426,7 +420,7 @@ export async function assetRoutes(app: FastifyInstance) {
         asset_id: asset.id,
         tenant_id: tenantId,
         event_type: 'CHECK_IN',
-        performed_by_id: request.user!.id,
+        performed_by_id: userId,
         metadata: { action: 'CREATE', data: asset },
       },
     });
@@ -437,7 +431,7 @@ export async function assetRoutes(app: FastifyInstance) {
   // Update asset
   api.patch('/:id', { schema: { params: z.object({ id: z.string().uuid() }), body: updateAssetInput, response: { 200: z.object({ id: z.string() }), 404: errorResponse, 409: errorResponse } } }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
+    const userId = (request.user as { id: string })?.id;
 
     const asset = await app.prisma.asset.findFirst({
       where: { id: request.params.id, tenant_id: tenantId, deleted_at: null },
@@ -498,27 +492,56 @@ export async function assetRoutes(app: FastifyInstance) {
     }
 
     const updated = await app.prisma.asset.update({
-      where: { id: request.params.id },
-      data: { ...updates, updated_by_id: request.user!.id },
-    });
-
-    await app.prisma.assetEvent.create({
+      where: { id: asset.id },
       data: {
-        asset_id: updated.id,
-        tenant_id: request.tenantId!,
-        event_type: 'STATUS_CHANGE',
-        performed_by_id: request.user!.id,
-        metadata: { changes },
+        ...updates,
+        updated_by_id: userId,
       },
     });
+
+    if (Object.keys(changes).length > 0) {
+      await app.prisma.assetEvent.create({
+        data: {
+          asset_id: asset.id,
+          tenant_id: tenantId,
+          event_type: 'CHECK_IN',
+          performed_by_id: userId,
+          metadata: { action: 'UPDATE', changes },
+        },
+      });
+    }
+
+    if (request.body.custom_fields) {
+      await Promise.all(Object.entries(request.body.custom_fields).map(async ([key, value]) => {
+        const cf = await app.prisma.customField.findFirst({ where: { tenant_id: tenantId, name: key, entity_type: 'asset', is_active: true } });
+        if (cf) {
+          const value: Record<string, unknown> = {};
+          switch (cf.type) {
+            case 'text': value.value_text = String(value); break;
+            case 'number': value.value_number = Number(value); break;
+            case 'boolean': value.value_boolean = Boolean(value); break;
+            case 'date': value.value_date = new Date(String(value)); break;
+            default: value.value_json = value;
+          }
+          await app.prisma.assetCustomFieldValue.upsert({
+            where: { asset_id_custom_field_id: { asset_id: asset.id, custom_field_id: cf.id } },
+            update: value,
+            create: { asset_id: asset.id, custom_field_id: cf.id, ...value },
+          });
+        }
+      }));
+    }
 
     return { id: updated.id };
   });
 
   // Delete asset (soft delete)
-  api.delete('/:id', { schema: { params: z.object({ id: z.string().uuid() }), response: { 200: z.object({ message: z.string() }), 404: errorResponse } } }, async (request, reply) => {
+  api.delete('/:id', { schema: deleteAssetSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const userId = (request.user as { id: string })?.id;
+
     const asset = await app.prisma.asset.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId!, deleted_at: null },
+      where: { id: request.params.id, tenant_id: tenantId, deleted_at: null },
     });
 
     if (!asset) {
@@ -526,135 +549,145 @@ export async function assetRoutes(app: FastifyInstance) {
     }
 
     await app.prisma.asset.update({
-      where: { id: request.params.id },
-      data: { deleted_at: new Date(), updated_by_id: request.user!.id },
+      where: { id: asset.id },
+      data: { deleted_at: new Date(), updated_by_id: userId },
     });
 
     await app.prisma.assetEvent.create({
       data: {
         asset_id: asset.id,
-        tenant_id: request.tenantId!,
-        event_type: 'CHECK_OUT',
-        performed_by_id: request.user!.id,
-        metadata: { action: 'DELETE', asset_tag: asset.asset_tag },
+        tenant_id: tenantId,
+        event_type: 'CHECK_IN',
+        performed_by_id: userId,
+        metadata: { action: 'DELETE', data: { asset_tag: asset.asset_tag } },
       },
     });
 
-    return { message: 'Asset deleted successfully' };
+    return { message: 'Asset deleted' };
   });
 
   // Bulk operations
-  api.post('/bulk', { schema: { body: bulkAssetOperationInput, response: { 200: bulkOperationResponse } } }, async (request, reply) => {
-    const { action, asset_ids, data } = request.body;
+  api.post('/bulk', { schema: bulkOperationSchema }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
-
-    const assets = await app.prisma.asset.findMany({
-      where: { id: { in: asset_ids }, tenant_id: tenantId, deleted_at: null },
-      select: { id: true, asset_tag: true },
-    });
-
-    const foundIds = new Set(assets.map(a => a.id));
-    const errors = asset_ids.filter(id => !foundIds.has(id)).map(id => ({ id, error: 'Asset not found' }));
+    const userId = (request.user as { id: string })?.id;
+    const { action, asset_ids, data } = request.body;
 
     let processed = 0;
-    const batchErrors = [...errors];
+    let failed = 0;
+    const errors: Array<{ id: string; error: string }> = [];
 
     for (const assetId of asset_ids) {
-      if (!foundIds.has(assetId)) continue;
-
       try {
+        const asset = await app.prisma.asset.findFirst({ where: { id: assetId, tenant_id: tenantId, deleted_at: null } });
+        if (!asset) throw new Error('Asset not found');
+
         switch (action) {
           case 'delete':
-            await app.prisma.asset.update({ where: { id: assetId }, data: { deleted_at: new Date(), updated_by_id: request.user!.id } });
+            await app.prisma.asset.update({ where: { id: assetId }, data: { deleted_at: new Date(), updated_by_id: (request.user as { id: string }).id } });
             break;
           case 'update_status':
-            await app.prisma.asset.update({ where: { id: assetId }, data: { status: data!.status, updated_by_id: request.user!.id } });
+            if (data?.status) {
+              await app.prisma.asset.update({ where: { id: assetId }, data: { status: data.status, updated_by_id: (request.user as { id: string }).id } });
+            }
             break;
           case 'assign_custodian':
-            await app.prisma.asset.update({ where: { id: assetId }, data: { custodian_user_id: data!.custodian_user_id, updated_by_id: request.user!.id } });
+            if (data?.custodian_user_id) {
+              await app.prisma.asset.update({ where: { id: assetId }, data: { custodian_user_id: data.custodian_user_id, updated_by_id: (request.user as { id: string }).id } });
+            }
             break;
           case 'assign_location':
-            await app.prisma.asset.update({ where: { id: assetId }, data: { site_id: data!.site_id, location_id: data!.location_id, updated_by_id: request.user!.id } });
+            if (data?.location_id) {
+              await app.prisma.asset.update({ where: { id: assetId }, data: { location_id: data.location_id, updated_by_id: (request.user as { id: string }).id } });
+            }
+            break;
+          case 'export':
+            // Handled by export endpoint
             break;
         }
+
+        await app.prisma.assetEvent.create({
+          data: { asset_id: assetId, tenant_id: tenantId, event_type: 'CHECK_IN', performed_by_id: (request.user as { id: string }).id, metadata: { action: action.toUpperCase(), data } },
+        });
+
         processed++;
       } catch (e) {
-        batchErrors.push({ id: assetId, error: e instanceof Error ? e.message : 'Unknown error' });
+        failed++;
+        errors.push({ id: assetId, error: e instanceof Error ? e.message : 'Unknown error' });
       }
     }
 
-    return { processed, failed: batchErrors.length, errors: batchErrors };
+    return { processed, failed, errors };
   });
 
   // Export assets
-  api.get('/export', { schema: { querystring: exportFilters } }, async (request, reply) => {
+  api.get('/export', { schema: exportAssetsSchema }, async (request, reply) => {
+    const { format, status, category_id, site_id } = request.query;
     const tenantId = request.tenantId!;
-    const { format, ...filters } = request.query;
 
     const where: Record<string, unknown> = { tenant_id: tenantId, deleted_at: null };
-    if (filters.status) where.status = filters.status;
-    if (filters.category_id) where.category_id = filters.category_id;
-    if (filters.site_id) where.site_id = filters.site_id;
+    if (status) where.status = status;
+    if (category_id) where.category_id = category_id;
+    if (site_id) where.site_id = site_id;
 
-    const assets = await app.prisma.asset.findMany({
-      where,
-      include: {
-        category: { select: { name: true } },
-        site: { select: { name: true } },
-        location: { select: { name: true } },
-        department: { select: { name: true } },
-        custodian_user: { select: { first_name: true, last_name: true, email: true } },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    const assets = await app.prisma.asset.findMany({ where, orderBy: { created_at: 'desc' } });
 
-    if (format === 'json') {
-      return reply.header('Content-Type', 'application/json').send(assets);
+    if (format === 'csv') {
+      const headers = ['Asset Tag', 'Serial Number', 'Make', 'Model', 'Category', 'Site', 'Location', 'Department', 'Custodian', 'Status', 'Condition', 'Purchase Date', 'Purchase Cost', 'Currency', 'Warranty Expires', 'Created At'];
+      const rows = assets.map(a => [a.asset_tag, a.serial_number || '', a.make || '', a.model || '', a.category?.name || '', a.site?.name || '', a.location?.name || '', a.department?.name || '', a.custodian_user?.first_name || '', a.status, a.condition || '', a.purchase_date || '', a.purchase_cost || '', a.currency, a.warranty_expires || '', a.created_at]);
+      const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      reply.header('Content-Type', 'text/csv');
+      reply.header('Content-Disposition', 'attachment; filename="assets-export.csv"');
+      return csv;
     }
 
-    const headers = [
-      'Asset Tag', 'Serial Number', 'Make', 'Model', 'Category', 'Site', 'Location', 'Department',
-      'Custodian', 'Status', 'Condition', 'Purchase Date', 'Purchase Cost', 'Currency', 'Warranty Expires', 'Created At'
-    ];
-
-    const rows = assets.map(a => [
-      a.asset_tag,
-      a.serial_number || '',
-      a.make || '',
-      a.model || '',
-      a.category?.name || '',
-      a.site?.name || '',
-      a.location?.name || '',
-      a.department?.name || '',
-      a.custodian_user ? `${a.custodian_user.first_name} ${a.custodian_user.last_name} (${a.custodian_user.email})` : '',
-      a.status,
-      a.condition || '',
-      a.purchase_date ? new Date(a.purchase_date).toLocaleDateString() : '',
-      a.purchase_cost?.toString() || '',
-      a.currency,
-      a.warranty_expires ? new Date(a.warranty_expires).toLocaleDateString() : '',
-      new Date(a.created_at).toLocaleDateString(),
-    ]);
-
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
-
-    const filename = `assets-export-${new Date().toISOString().split('T')[0]}.csv`;
-    return reply
-      .header('Content-Type', 'text/csv')
-      .header('Content-Disposition', `attachment; filename="${filename}"`)
-      .send(csv);
+    reply.header('Content-Type', 'application/json');
+    reply.header('Content-Disposition', 'attachment; filename="assets-export.json"');
+    return assets;
   });
 
   // Import preview
   api.post('/import/preview', { schema: importPreviewSchema }, async (request, reply) => {
+    // Implementation would parse uploaded file
     return { preview: [], summary: { total: 0, valid: 0, invalid: 0 } };
   });
 
-  // Commit import
+  // Import commit
   api.post('/import/commit', { schema: importCommitSchema }, async (request, reply) => {
-    return { created: 0, errors: [] };
+    const tenantId = request.tenantId!;
+    const userId = (request.user as { id: string })?.id;
+    const { rows, idempotency_key } = request.body;
+
+    // Check idempotency
+    const existing = await app.prisma.assetImport.findUnique({ where: { idempotency_key } });
+    if (existing) return reply.code(409).send({ error: 'Import already processed', code: 'IDEMPOTENCY_CONFLICT' });
+
+    let created = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const normalizedTag = row.asset_tag.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+        const existing = await app.prisma.asset.findFirst({ where: { tenant_id: tenantId, normalized_tag: normalizedTag, deleted_at: null } });
+        if (existing) throw new Error(`Asset tag ${normalizedTag} already exists`);
+
+        await app.prisma.asset.create({
+          data: {
+            ...row,
+            asset_tag: row.asset_tag,
+            normalized_tag: normalizedTag,
+            tenant_id: tenantId,
+            created_by_id: userId,
+          },
+        });
+        created++;
+      } catch (e) {
+        errors.push({ row: i + 1, error: e instanceof Error ? e.message : 'Unknown error' });
+      }
+    }
+
+    await app.prisma.assetImport.create({ data: { idempotency_key, tenant_id: tenantId, rows: rows.length, created, errors: errors.length, created_at: new Date() } });
+
+    return { created, errors };
   });
 }
-
-export { assetRoutes };
