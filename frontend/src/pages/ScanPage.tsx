@@ -1,11 +1,11 @@
 // frontend/src/pages/ScanPage.tsx
-// Mobile PWA scanner page
+// Mobile PWA scanner page with real barcode scanning
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ScanBarcode, Camera, Flashlight, X, Check, Loader2, 
-  History, Settings, Home, Package, AlertTriangle
+  History, Settings, Home, Package, AlertTriangle, ChevronLeft
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -13,6 +13,8 @@ import { Badge } from '../components/ui/Badge';
 import { cn, formatDateTime } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { useSubmitScan, useAudits } from '../api/audits';
+import { BrowserMultiFormatReader, Result } from '@zxing/library';
 
 export function ScanPage() {
   const navigate = useNavigate();
@@ -25,8 +27,41 @@ export function ScanPage() {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanHistory, setScanHistory] = useState<Array<{ tag: string; timestamp: Date; success: boolean }>>([]);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+  const [activeAudits, setActiveAudits] = useState<Array<{ id: string; name: string; status: string }>>([]);
+  const [showAuditSelector, setShowAuditSelector] = useState(false);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  
+  const submitScan = useSubmitScan();
+  const { data: auditsData } = useAudits({ status: 'IN_PROGRESS', limit: 10 });
+
+  // Initialize barcode reader
+  useEffect(() => {
+    codeReaderRef.current = new BrowserMultiFormatReader();
+    return () => {
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+    };
+  }, []);
+
+  // Load active audits for selection
+  useEffect(() => {
+    if (auditsData?.data) {
+      setActiveAudits(auditsData.data.map(a => ({ 
+        id: a.id, 
+        name: a.name, 
+        status: a.status 
+      })));
+      // Auto-select first active audit if available
+      if (auditsData.data.length > 0 && !selectedAuditId) {
+        setSelectedAuditId(auditsData.data[0].id);
+      }
+    }
+  }, [auditsData, selectedAuditId]);
 
   // Request camera permission on mount
   useEffect(() => {
@@ -54,6 +89,9 @@ export function ScanPage() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
     };
   }, [facingMode]);
 
@@ -76,34 +114,84 @@ export function ScanPage() {
     setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
   };
 
-  // Simulated barcode scanning (in production, use QuaggaJS or @zxing/library)
-  const handleScan = async () => {
-    if (!videoRef.current || scanning) return;
+  // Start continuous scanning
+  const startScanning = useCallback(async () => {
+    if (!videoRef.current || scanning || !selectedAuditId) return;
+    
     setScanning(true);
     
-    // Simulate scanning delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // In production, this would use actual barcode detection
-    // For demo, generate a sample asset tag
-    const sampleTags = ['LPT-0042', 'MON-0012', 'DSK-0100', 'PRN-0005', 'CHR-0033'];
-    const result = sampleTags[Math.floor(Math.random() * sampleTags.length)];
-    
-    setScanResult(result);
-    setScanHistory(prev => [{ tag: result, timestamp: new Date(), success: true }, ...prev.slice(0, 9)]);
-    toast.success(`Scanned: ${result}`);
+    try {
+      const result = await codeReaderRef.current!.decodeFromVideoDevice(
+        undefined, // auto-select camera
+        videoRef.current!,
+        (result: Result | null) => {
+          if (result) {
+            const text = result.getText();
+            handleScanResult(text);
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Scanning error:', err);
+      toast.error('Scanning failed. Please try again.');
+      setScanning(false);
+    }
+  }, [scanning, selectedAuditId, toast]);
+
+  // Stop scanning
+  const stopScanning = useCallback(() => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+    }
     setScanning(false);
+  }, []);
+
+  // Handle scan result
+  const handleScanResult = async (tag: string) => {
+    stopScanning();
+    
+    if (!selectedAuditId) {
+      toast.error('No active audit session selected');
+      return;
+    }
+
+    try {
+      const result = await submitScan.mutateAsync({
+        id: selectedAuditId,
+        data: { asset_tag: tag, status: 'FOUND' },
+      });
+      
+      setScanResult(tag);
+      setScanHistory(prev => [{ tag, timestamp: new Date(), success: true }, ...prev.slice(0, 19)]);
+      toast.success(`Scanned: ${tag}`);
+    } catch (err) {
+      console.error('Scan submission failed:', err);
+      setScanHistory(prev => [{ tag, timestamp: new Date(), success: false }, ...prev.slice(0, 19)]);
+      toast.error('Failed to submit scan');
+    }
   };
 
   const clearResult = () => {
     setScanResult(null);
+    // Restart scanning after clearing
+    setTimeout(() => {
+      if (scanning) startScanning();
+    }, 100);
   };
 
   const viewAsset = () => {
     if (scanResult) {
-      navigate(`/assets/${scanResult}`); // Would need to map tag to ID
+      navigate(`/assets/${scanResult}`);
     }
   };
+
+  // Auto-start scanning when component mounts and has permission
+  useEffect(() => {
+    if (hasPermission && selectedAuditId && !scanning) {
+      startScanning();
+    }
+    return () => stopScanning();
+  }, [hasPermission, selectedAuditId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,6 +209,61 @@ export function ScanPage() {
       </header>
 
       <main className="p-4 pb-24">
+        {/* Audit Selector */}
+        {activeAudits.length > 0 && (
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Active Audit Session</span>
+                <Button variant="ghost" size="sm" onClick={() => setShowAuditSelector(true)}>
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Change
+                </Button>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="font-medium">{activeAudits.find(a => a.id === selectedAuditId)?.name || 'Select audit...'}</p>
+                  <p className="text-xs text-muted-foreground">{activeAudits.length} active session(s)</p>
+                </div>
+                <Badge variant={selectedAuditId ? 'success' : 'secondary'}>
+                  {selectedAuditId ? 'Active' : 'None Selected'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {showAuditSelector && (
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>Select Audit Session</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {activeAudits.map(audit => (
+                  <Button
+                    key={audit.id}
+                    variant={selectedAuditId === audit.id ? 'default' : 'outline'}
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setSelectedAuditId(audit.id);
+                      setShowAuditSelector(false);
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div>
+                        <p className="font-medium">{audit.name}</p>
+                        <p className="text-xs text-muted-foreground">{audit.status}</p>
+                      </div>
+                      {selectedAuditId === audit.id && <Check className="h-4 w-4" />}
+                    </div>
+                  </Button>
+                ))}
+                <Button variant="ghost" onClick={() => setShowAuditSelector(false)}>Cancel</Button>
+              </div>
+            </CardContent          </Card>
+        )}
+
         {/* Camera View */}
         <Card className="overflow-hidden">
           <CardHeader className="pb-2">
@@ -159,7 +302,7 @@ export function ScanPage() {
                     </div>
                   </div>
                 </div>
-                
+               
                 {/* Scan result overlay */}
                 {scanResult && (
                   <div className="absolute bottom-4 left-4 right-4 z-10 animate-slide-up">
@@ -187,29 +330,29 @@ export function ScanPage() {
                     </Card>
                   </div>
                 )}
-
-                {/* Scan button */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                  <Button 
-                    size="lg" 
-                    onClick={handleScan} 
-                    disabled={scanning}
-                    className="w-48"
-                  >
-                    {scanning ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                        Scanning...
-                      </>
-                    ) : (
-                      <>
-                        <ScanBarcode className="h-5 w-5 mr-2" />
-                        Scan
-                      </>
-                    )}
-                  </Button>
-                </div>
               </>
+
+              {/* Scan button */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                <Button 
+                  size="lg" 
+                  onClick={scanning ? stopScanning : startScanning} 
+                  disabled={!selectedAuditId}
+                  className="w-48"
+                >
+                  {scanning ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Stop Scanning
+                    </>
+                  ) : (
+                    <>
+                      <ScanBarcode className="h-5 w-5 mr-2" />
+                      {selectedAuditId ? 'Start Scanning' : 'Select Audit First'}
+                    </>
+                  )}
+                </Button>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
                 <Camera className="h-16 w-16 mb-4 opacity-50" />
@@ -239,7 +382,7 @@ export function ScanPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No scans yet</p>
-                <p className="text-sm">Scan your first asset to see history</p>
+                <p className="text-sm">Start scanning to see history</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">

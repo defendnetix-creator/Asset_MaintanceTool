@@ -144,12 +144,18 @@ const scanAssetSchema = {
     properties: { id: { type: 'string', format: 'uuid' } },
     required: ['id'],
   },
+  querystring: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {},
+  },
   body: {
     type: 'object',
+    additionalProperties: true,
     properties: {
       asset_tag: { type: 'string', minLength: 1 },
-      location_id: { type: 'string', format: 'uuid' },
-      status: { type: 'string', enum: ['FOUND', 'MISSING', 'DAMAGED', 'MOVED'] },
+      location_id: { type: 'string' },
+      status: { type: 'string' },
       notes: { type: 'string' },
       photo_base64: { type: 'string' },
     },
@@ -188,6 +194,11 @@ const startAuditSessionSchema = {
     type: 'object',
     properties: { id: { type: 'string', format: 'uuid' } },
     required: ['id'],
+  },
+  querystring: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {},
   },
   response: {
     200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
@@ -470,16 +481,28 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    // Create audit items
+    // Create audit items (use upsert to handle existing items)
     if (assets.length > 0) {
-      await app.prisma.auditItem.createMany({
-        data: assets.map(a => ({
-          session_id: session.id,
-          asset_id: a.id,
-          expected_location_id: a.location_id,
-          status: 'PENDING',
-        })),
-      });
+      for (const asset of assets) {
+        await app.prisma.auditSessionItem.upsert({
+          where: {
+            session_id_asset_id: {
+              session_id: session.id,
+              asset_id: asset.id,
+            },
+          },
+          create: {
+            session_id: session.id,
+            asset_id: asset.id,
+            expected_location_id: asset.location_id,
+            status: 'MISSING',
+          },
+          update: {
+            expected_location_id: asset.location_id,
+            status: 'MISSING',
+          },
+        });
+      }
     }
 
     await app.prisma.auditSession.update({
@@ -504,7 +527,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
   }
 
   // Scan asset
-  app.post('/:id/scan', { schema: scanAssetSchema }, async (request, reply) => {
+  app.post('/:id/scan', async (request, reply) => {
     const tenantId = request.tenantId!;
     const userId = (request.user as { id: string }).id;
     const { asset_tag, location_id, status = 'FOUND', notes, photo_base64 } = request.body as any;
@@ -517,7 +540,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: 'Audit session not found or not in progress', code: 'NOT_FOUND' });
     }
 
-    const item = await app.prisma.auditItem.findFirst({
+    const item = await app.prisma.auditSessionItem.findFirst({
       where: { session_id: session.id, asset: { asset_tag } },
       include: { asset: true, expected_location: true },
     });
@@ -526,7 +549,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: 'Asset not in this audit session', code: 'ASSET_NOT_IN_SESSION' });
     }
 
-    if (item.status !== 'PENDING') {
+    if (item.status !== 'MISSING') {
       return reply.code(400).send({ error: 'Asset already scanned', code: 'ALREADY_SCANNED' });
     }
 
@@ -535,19 +558,30 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       scannedLocation = await app.prisma.location.findFirst({ where: { id: location_id } });
     }
 
-    const discrepancy = item.expected_location_id !== location_id
-      ? { type: 'LOCATION_MISMATCH', expected_qty: 1, actual_qty: 1 }
-      : null;
+    let discrepancyId: string | null = null;
 
-    await app.prisma.auditItem.update({
+    if (item.expected_location_id !== location_id) {
+      const discrepancy = await app.prisma.auditDiscrepancy.create({
+        data: {
+          session_id: session.id,
+          asset_id: item.asset_id,
+          type: 'LOCATION_MISMATCH',
+          severity: 'MEDIUM',
+          status: 'OPEN',
+        },
+      });
+      discrepancyId = discrepancy.id;
+    }
+
+    await app.prisma.auditSessionItem.update({
       where: { id: item.id },
       data: {
         status,
-        scanned_location_id: location_id,
+        scanned_location: location_id ? { connect: { id: location_id } } : { disconnect: true },
         scanned_at: new Date(),
-        scanned_by: userId,
+        scanned_by: { connect: { id: userId } },
         notes,
-        discrepancy: discrepancy ? { create: discrepancy } : undefined,
+        discrepancy: discrepancyId ? { connect: { id: discrepancyId } } : { disconnect: true },
       },
     });
 
@@ -582,7 +616,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
         where: { id: discrepancy.id },
         data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Marked as missing' },
       });
-      await app.prisma.auditItem.update({
+      await app.prisma.auditSessionItem.update({
         where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
         data: { status: 'MISSING' },
       });
@@ -591,7 +625,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
         where: { id: discrepancy.id },
         data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Marked as damaged' },
       });
-      await app.prisma.auditItem.update({
+      await app.prisma.auditSessionItem.update({
         where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
         data: { status: 'DAMAGED' },
       });
@@ -600,7 +634,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
         where: { id: discrepancy.id },
         data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Location updated' },
       });
-      await app.prisma.auditItem.update({
+      await app.prisma.auditSessionItem.update({
         where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
         data: { scanned_location_id: location_id, status: 'FOUND' },
       });
