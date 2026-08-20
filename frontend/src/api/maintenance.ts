@@ -134,12 +134,21 @@ export function useAddMaintenanceLabor() {
 
 export function useAddMaintenanceNote() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { content: string; is_internal?: boolean } }) => 
+    mutationFn: ({ id, data }: { id: string; data: { content: string; is_internal?: boolean } }) =>
       api.post<{ id: string }>(`/maintenance/${id}/notes`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: maintenanceKeys.detail(id) });
     },
+  });
+}
+
+// Get maintenance work orders for a specific asset
+export function useAssetMaintenance(assetId: string) {
+  return useQuery({
+    queryKey: [...maintenanceKeys.lists(), 'asset', assetId],
+    queryFn: () => api.get<PaginatedResponse<MaintenanceWorkOrder>>(`/maintenance`, { asset_id: assetId }),
+    enabled: !!assetId,
   });
 }

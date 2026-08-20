@@ -714,6 +714,39 @@ async function assetRoutes(app: FastifyInstance) {
     // TODO: Implement import commit with idempotency
     return { created: 0, errors: [] };
   });
+
+  // Get asset events/history
+  api.get('/:id/events', async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const { id } = request.params;
+
+    const asset = await app.prisma.asset.findFirst({
+      where: { id, tenant_id: tenantId },
+      select: { id: true },
+    });
+
+    if (!asset) {
+      return reply.status(404).send({ error: 'Asset not found', code: 'NOT_FOUND' });
+    }
+
+    const events = await app.prisma.assetEvent.findMany({
+      where: { asset_id: id, tenant_id: tenantId },
+      orderBy: { occurred_at: 'desc' },
+      include: {
+        performed_by: { select: { id: true, first_name: true, last_name: true } },
+      },
+      take: 100,
+    });
+
+    return events.map(e => ({
+      id: e.id,
+      event_type: e.event_type,
+      description: e.description,
+      metadata: e.metadata,
+      occurred_at: e.occurred_at,
+      performed_by: e.performed_by,
+    }));
+  });
 }
 
 export { assetRoutes };

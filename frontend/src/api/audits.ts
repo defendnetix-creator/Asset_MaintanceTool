@@ -101,3 +101,12 @@ export function useExportAuditReport(id: string, format: 'pdf' | 'csv' | 'json' 
     mutationFn: () => api.get(`/audits/${id}/report`, { format }),
   });
 }
+
+// Get audits for a specific asset
+export function useAssetAudits(assetId: string) {
+  return useQuery({
+    queryKey: [...auditKeys.lists(), 'asset', assetId],
+    queryFn: () => api.get<PaginatedResponse<AuditSession>>(`/audits`, { asset_id: assetId }),
+    enabled: !!assetId,
+  });
+}

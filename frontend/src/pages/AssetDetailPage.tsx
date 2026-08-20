@@ -5,9 +5,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, Trash2, Box, User, MapPin, Tag, FileText, 
-  Image, History, Settings, Plus, Download, Loader2
+  Image, History, Settings, Plus, Download, Loader2,
+  ClipboardCheck, Wrench
 } from 'lucide-react';
-import { useAsset, useUpdateAsset, useDeleteAsset } from '../api/assets';
+import { useAsset, useUpdateAsset, useDeleteAsset, useAssetEvents } from '../api/assets';
+import { useAssetAudits } from '../api/audits';
+import { useAssetMaintenance } from '../api/maintenance';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -43,6 +46,9 @@ export function AssetDetailPage() {
   const [editForm, setEditForm] = useState<any>({});
 
   const { data: asset, isLoading, error, refetch } = useAsset(id!);
+  const { data: events, isLoading: eventsLoading } = useAssetEvents(id!);
+  const { data: auditsData, isLoading: auditsLoading } = useAssetAudits(id!);
+  const { data: maintenanceData, isLoading: maintenanceLoading } = useAssetMaintenance(id!);
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
 
@@ -195,6 +201,8 @@ export function AssetDetailPage() {
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="audits">Audits</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="custom">Custom Fields</TabsTrigger>
         </TabsList>
@@ -454,6 +462,92 @@ export function AssetDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* Audits Tab */}
+        <TabsContent value="audits" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Audit History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {auditsLoading ? (
+                <div className="text-center py-8">Loading audits...</div>
+              ) : auditsData?.data?.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Audit Session</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Scope</TableHead>
+                      <TableHead>Scanned / Total</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auditsData.data.map(audit => (
+                      <TableRow key={audit.id}>
+                        <TableCell className="font-medium">{audit.name}</TableCell>
+                        <TableCell><Badge variant="outline">{audit.status}</Badge></TableCell>
+                        <TableCell>{audit.scope_type}: {audit.scope_name || audit.scope_id}</TableCell>
+                        <TableCell>{audit.scanned_count} / {audit.total_assets}</TableCell>
+                        <TableCell>{audit.created_at ? formatDate(audit.created_at) : '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ClipboardCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No audits found for this asset</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {maintenanceLoading ? (
+                <div className="text-center py-8">Loading work orders...</div>
+              ) : maintenanceData?.data?.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>WO Number</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Technician</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {maintenanceData.data.map(wo => (
+                      <TableRow key={wo.id}>
+                        <TableCell className="font-mono font-medium">{wo.wo_number}</TableCell>
+                        <TableCell><Badge variant="outline">{wo.type}</Badge></TableCell>
+                        <TableCell><Badge variant="outline">{wo.status}</Badge></TableCell>
+                        <TableCell>P{wo.priority}</TableCell>
+                        <TableCell>{wo.due_date ? formatDate(wo.due_date) : '—'}</TableCell>
+                        <TableCell>{wo.technician ? `${wo.technician.first_name} ${wo.technician.last_name}` : 'Unassigned'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No work orders for this asset</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* History Tab */}
         <TabsContent value="history" className="space-y-6">
           <Card>
@@ -461,33 +555,35 @@ export function AssetDetailPage() {
               <CardTitle>Asset History</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Performed By</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {asset.events?.map(event => (
-                    <TableRow key={event.id}>
-                      <TableCell>{formatDateTime(event.occurred_at)}</TableCell>
-                      <TableCell><Badge variant="outline">{event.event_type.replace('_', ' ')}</Badge></TableCell>
-                      <TableCell>{event.description || '—'}</TableCell>
-                      <TableCell>{event.performed_by?.first_name} {event.performed_by?.last_name}</TableCell>
-                    </TableRow>
-                  ))}
-                  {!asset.events?.length && (
+              {eventsLoading ? (
+                <div className="text-center py-8">Loading history...</div>
+              ) : events?.length ? (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        No history available
-                      </TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Event</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Performed By</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {events.map(event => (
+                      <TableRow key={event.id}>
+                        <TableCell>{formatDateTime(event.occurred_at)}</TableCell>
+                        <TableCell><Badge variant="outline">{event.event_type.replace('_', ' ')}</Badge></TableCell>
+                        <TableCell>{event.description || '—'}</TableCell>
+                        <TableCell>{event.performed_by?.first_name} {event.performed_by?.last_name}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No history available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

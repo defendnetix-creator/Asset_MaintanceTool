@@ -178,6 +178,7 @@ model User {
   maintenance_technician MaintenanceWorkOrder[] @relation("WorkOrderTechnician")
   maintenance_labor      MaintenanceLabor[]   @relation("MaintenanceLaborTechnician")
   groups                UserGroupMember[]
+  performed_events      AssetEvent[]   @relation("AssetEventPerformedBy")
 
   @@unique([tenant_id, email])
   @@index([tenant_id, status])
@@ -419,6 +420,7 @@ model Asset {
   audit_discrepancies AuditDiscrepancy[]
   audit_items       AuditSessionItem[]
   maintenance_orders MaintenanceWorkOrder[]
+  events            AssetEvent[]
 
   @@unique([tenant_id, normalized_tag])
   @@index([tenant_id, status])
@@ -488,11 +490,13 @@ model Document {
 model AssetEvent {
   id              String        @id @default(uuid())
   asset_id        String
+  asset           Asset         @relation(fields: [asset_id], references: [id])
   tenant_id       String
   event_type      AssetEventType
   description     String?
   metadata        Json?
   performed_by_id String
+  performed_by    User          @relation("AssetEventPerformedBy", fields: [performed_by_id], references: [id])
   occurred_at     DateTime      @default(now())
   created_at      DateTime      @default(now())
 
