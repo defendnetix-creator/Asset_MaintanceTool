@@ -23,7 +23,7 @@ export const userKeys = {
 export function useUsers(filters: UserFilters = {}) {
   return useQuery({
     queryKey: userKeys.list(filters),
-    queryFn: () => api.get<PaginatedResponse<User>>('/users', filters),
+    queryFn: () => api.get<PaginatedResponse<User>>('/users', { ...filters, additionalProperties: true }),
     placeholderData: (previousData) => previousData,
   });
 }
@@ -40,7 +40,7 @@ export function useInviteUser() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: CreateUserInput) => api.post<{ id: string; email: string }>('/users/invite', data),
+    mutationFn: (data: CreateUserInput) => api.post<{ id: string; email: string }>('/users', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
