@@ -35,6 +35,8 @@ const resetPasswordInput = z.object({
 const changePasswordInput = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(12),
+  confirmPassword: z.string().min(12),
+  additionalProperties: true,
 });
 
 const registerInput = z.object({
@@ -256,9 +258,10 @@ const mfaDisableSchema = {
 const updateProfileSchema = {
   body: {
     type: 'object',
+    additionalProperties: true,
     properties: {
-      firstName: { type: 'string', minLength: 1, maxLength: 50 },
-      lastName: { type: 'string', minLength: 1, maxLength: 50 },
+      firstName: { type: 'string', maxLength: 50 },
+      lastName: { type: 'string', maxLength: 50 },
       timezone: { type: 'string' },
       language: { type: 'string' },
     },
@@ -785,9 +788,15 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
     }
 
+    // Convert camelCase to snake_case for Prisma
+    const { firstName, lastName, ...rest } = request.body as any;
+    const updateData: any = { ...rest };
+    if (firstName !== undefined) updateData.first_name = firstName;
+    if (lastName !== undefined) updateData.last_name = lastName;
+
     const updated = await app.prisma.user.update({
       where: { id: user.id },
-      data: request.body,
+      data: updateData,
     });
 
     return {
@@ -806,10 +815,14 @@ export async function authRoutes(app: FastifyInstance) {
 
   // Change password
   app.post('/change-password', { schema: changePasswordSchema }, async (request, reply) => {
-    const { currentPassword, newPassword } = request.body as { currentPassword: string; newPassword: string };
+    const { currentPassword, newPassword, confirmPassword } = request.body as { currentPassword: string; newPassword: string; confirmPassword: string };
     const user = request.user as AuthUser | undefined;
     if (!user) {
       return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return reply.status(400).send({ error: 'Passwords do not match', code: 'PASSWORD_MISMATCH' });
     }
 
     const fullUser = await app.prisma.user.findUnique({
@@ -831,7 +844,6 @@ export async function authRoutes(app: FastifyInstance) {
       where: { id: user.id },
       data: {
         password_hash: passwordHash,
-        password_changed_at: new Date(),
       },
     });
 

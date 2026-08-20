@@ -96,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const response = await fetch(`${API_URL}/auth/me/password`, {
-      method: 'PATCH',
+    const response = await fetch(`${API_URL}/auth/change-password`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ currentPassword, newPassword, confirmPassword: newPassword }),
