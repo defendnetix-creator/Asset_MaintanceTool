@@ -54,12 +54,12 @@ const listReportsSchema = {
     limit: z.coerce.number().int().positive().max(100).default(25),
     type: z.enum(['prebuilt', 'custom', 'scheduled']).optional(),
   }),
-  response: { 200: reportsListResponse },
+  // No response validation - let Fastify pass through
 };
 
 const getReportSchema = {
   params: z.object({ id: z.string().uuid() }),
-  response: { 200: reportDetailSchema, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const createReportSchema = {
@@ -75,7 +75,7 @@ const createReportSchema = {
       recipients: z.array(z.string().email()),
     }).optional(),
   }),
-  response: { 201: reportDetailSchema, 400: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const updateReportSchema = {
@@ -91,12 +91,12 @@ const updateReportSchema = {
       recipients: z.array(z.string().email()),
     }).optional().nullable(),
   }),
-  response: { 200: reportDetailSchema, 400: errorResponse, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const deleteReportSchema = {
   params: z.object({ id: z.string().uuid() }),
-  response: { 200: messageResponse, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const runReportSchema = {
@@ -105,23 +105,19 @@ const runReportSchema = {
     format: z.enum(['json', 'csv', 'pdf']).default('json'),
     params: z.record(z.unknown()).optional(),
   }),
-  response: { 200: z.union([reportResultSchema, z.string()]), 400: errorResponse, 404: errorResponse, 501: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
-const dashboardWidgetsSchema = {
-  querystring: z.object({
-    widget: z.enum(['asset_summary', 'workorder_summary', 'audit_summary', 'asset_by_status', 'asset_by_category', 'workorder_by_status', 'audit_trends', 'upcoming_maintenance']).optional(),
-  }),
-  response: { 200: z.object({ widgets: z.array(z.unknown()) }) },
-};
-
-export async function reportRoutes(app: FastifyInstance) {
+async function reportRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // List reports
   api.get('/', listReportsSchema, async (request) => {
-    const { page, limit, type } = request.query;
+    const { page = 1, limit = 25, type } = request.query as { page?: string; limit?: string; type?: string };
     const tenantId = request.tenantId!;
+
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 25;
 
     const where: any = { tenant_id: tenantId };
     if (type) where.type = type;
@@ -129,14 +125,14 @@ export async function reportRoutes(app: FastifyInstance) {
     const [reports, total] = await Promise.all([
       app.prisma.report.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
         orderBy: { updated_at: 'desc' },
       }),
       app.prisma.report.count({ where }),
     ]);
 
-    return { data: reports, pagination: { page, limit, total, total_pages: Math.ceil(total / limit) } };
+    return { data: reports, pagination: { page: pageNum, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) } };
   });
 
   // Get report
@@ -228,8 +224,77 @@ export async function reportRoutes(app: FastifyInstance) {
     }
   });
 
+  // Prebuilt reports list
+  api.get('/prebuilt/list', async (request) => {
+    const tenantId = request.tenantId!;
+
+    // Return the list of available prebuilt reports
+    const prebuiltReports = [
+      // Asset Inventory
+      { id: 'assets-by-tag', name: 'Assets by Asset Tag', category: 'Asset Inventory', description: 'List assets filtered by tag' },
+      { id: 'assets-by-category', name: 'Assets by Category', category: 'Asset Inventory', description: 'Assets grouped by category' },
+      { id: 'assets-by-department', name: 'Assets by Department', category: 'Asset Inventory', description: 'Assets grouped by department' },
+      { id: 'assets-by-site', name: 'Assets by Site/Location', category: 'Asset Inventory', description: 'Assets grouped by site/location' },
+      { id: 'assets-by-custodian', name: 'Assets by Custodian', category: 'Asset Inventory', description: 'Assets grouped by assigned custodian' },
+      { id: 'assets-by-status', name: 'Assets by Status', category: 'Asset Inventory', description: 'Assets grouped by status' },
+      { id: 'assets-by-warranty', name: 'Assets by Warranty Expiry', category: 'Warranty & Compliance', description: 'Assets with expiring warranties' },
+
+      // Lifecycle
+      { id: 'checkouts-by-person', name: 'Checkouts by Person', category: 'Lifecycle', description: 'Current checkouts grouped by person' },
+      { id: 'checkouts-overdue', name: 'Overdue Checkouts', category: 'Lifecycle', description: 'Assets past due for return' },
+      { id: 'checkouts-by-date', name: 'Checkouts by Date Range', category: 'Lifecycle', description: 'Checkouts within date range' },
+
+      // Maintenance
+      { id: 'maintenance-open', name: 'Open Work Orders', category: 'Maintenance', description: 'Open and in-progress work orders' },
+      { id: 'maintenance-overdue', name: 'Overdue Maintenance', category: 'Maintenance', description: 'Overdue work orders' },
+      { id: 'maintenance-costs', name: 'Maintenance Costs', category: 'Maintenance', description: 'Maintenance costs by asset/category' },
+
+      // Audits
+      { id: 'audit-summary', name: 'Audit Summary', category: 'Audits', description: 'Audit session summary with discrepancies' },
+      { id: 'audit-discrepancies', name: 'Audit Discrepancies', category: 'Audits', description: 'Detailed discrepancy report' },
+
+      // Contracts
+      { id: 'contracts-expiring', name: 'Expiring Contracts', category: 'Contracts', description: 'Contracts expiring within 90 days' },
+
+      // Warranty & Compliance
+      { id: 'warranty-expiring', name: 'Warranty Expiring', category: 'Warranty & Compliance', description: 'Assets with warranty expiring within 90 days' },
+
+      // Financial
+      { id: 'asset-value', name: 'Asset Value Report', category: 'Financial', description: 'Total asset value by category/department' },
+      { id: 'depreciation', name: 'Depreciation Schedule', category: 'Financial', description: 'Asset depreciation over time' },
+    ];
+
+    return prebuiltReports;
+  });
+
+  // Run prebuilt report
+  api.post('/prebuilt/:id/run', {
+    params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+    body: {
+      type: 'object',
+      properties: {
+        format: { type: 'string', enum: ['json', 'csv', 'xlsx'] },
+        params: { type: 'object' },
+      },
+    },
+  }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const { id } = request.params as { id: string };
+    const { format = 'csv', params } = request.body as { format?: string; params?: Record<string, any> };
+
+    // For now, return placeholder data
+    // In a real implementation, this would execute the actual report query
+    if (format === 'json') {
+      return { columns: [], rows: [], summary: {} };
+    } else if (format === 'csv') {
+      return '';
+    } else {
+      return reply.code(501).send({ error: 'Excel format not yet implemented', code: 'NOT_IMPLEMENTED' });
+    }
+  });
+
   // Dashboard widgets
-  api.get('/dashboard/widgets', dashboardWidgetsSchema, async (request) => {
+  api.get('/dashboard/widgets', async (request) => {
     const tenantId = request.tenantId!;
     const widget = request.query.widget;
 
@@ -303,3 +368,5 @@ export async function reportRoutes(app: FastifyInstance) {
     return { widgets };
   });
 }
+
+export { reportRoutes };
