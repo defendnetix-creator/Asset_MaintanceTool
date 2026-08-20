@@ -67,89 +67,12 @@ const getAuditSessionSchema = {
     properties: { id: { type: 'string', format: 'uuid' } },
     required: ['id'],
   },
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        scope_type: { type: 'string' },
-        scope_id: { type: 'string', nullable: true },
-        scope_name: { type: 'string', nullable: true },
-        status: { type: 'string' },
-        start_at: { type: 'string', nullable: true },
-        end_at: { type: 'string', nullable: true },
-        completed_at: { type: 'string', nullable: true },
-        items: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              asset_id: { type: 'string' },
-              asset: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  asset_tag: { type: 'string' },
-                  make: { type: 'string', nullable: true },
-                  model: { type: 'string', nullable: true },
-                },
-                required: ['id', 'asset_tag', 'make', 'model'],
-              },
-              expected_location_id: { type: 'string', nullable: true },
-              expected_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
-              scanned_location_id: { type: 'string', nullable: true },
-              scanned_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
-              status: { type: 'string' },
-              scanned_at: { type: 'string', nullable: true },
-              scanned_by: { type: 'string', nullable: true },
-              discrepancy: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  type: { type: 'string' },
-                  expected_qty: { type: 'number' },
-                  actual_qty: { type: 'number' },
-                  notes: { type: 'string', nullable: true },
-                },
-                required: ['id', 'type', 'expected_qty', 'actual_qty', 'notes'],
-              },
-              notes: { type: 'string', nullable: true },
-            },
-            required: ['id', 'asset_id', 'asset', 'expected_location_id', 'expected_location', 'scanned_location_id', 'scanned_location', 'status', 'scanned_at', 'scanned_by', 'discrepancy', 'notes'],
-          },
-        },
-        discrepancies: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              type: { type: 'string' },
-              asset: { type: 'object', properties: { id: { type: 'string' }, asset_tag: { type: 'string' } }, required: ['id', 'asset_tag'] },
-              expected_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
-              found_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
-              expected_qty: { type: 'number' },
-              actual_qty: { type: 'number' },
-              notes: { type: 'string', nullable: true },
-              created_at: { type: 'string' },
-              resolved_at: { type: 'string', nullable: true },
-            },
-            required: ['id', 'type', 'asset', 'expected_location', 'found_location', 'expected_qty', 'actual_qty', 'notes', 'created_at', 'resolved_at'],
-          },
-        },
-        created_at: { type: 'string' },
-        updated_at: { type: 'string' },
-      },
-      required: ['id', 'name', 'scope_type', 'scope_id', 'scope_name', 'status', 'start_at', 'end_at', 'completed_at', 'items', 'discrepancies', 'created_at', 'updated_at'],
-    },
-    404: {
-      type: 'object',
-      properties: { error: { type: 'string' }, code: { type: 'string' } },
-      required: ['error', 'code'],
-    },
+  querystring: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {},
   },
+  // No response validation - let Fastify pass through
 };
 
 const createAuditSessionSchema = {
@@ -158,7 +81,7 @@ const createAuditSessionSchema = {
     additionalProperties: true,
     properties: {
       name: { type: 'string', minLength: 1, maxLength: 100 },
-      scope_type: { type: 'string', enum: ['SITE', 'BUILDING', 'FLOOR', 'ROOM', 'DEPARTMENT', 'ALL'] },
+      scope_type: { type: 'string', enum: ['SITE', 'DEPARTMENT', 'ALL', 'BUILDING', 'FLOOR', 'ROOM'] },
       scope_id: { type: 'string', format: 'uuid' },
       due_at: { type: 'string' },
       lead_auditor_id: { type: 'string', format: 'uuid' },
@@ -169,17 +92,41 @@ const createAuditSessionSchema = {
     },
     required: ['name', 'scope_type'],
   },
-  // No response validation for 201 - Fastify will pass through raw response
   response: {
-    400: {
-      type: 'object',
-      properties: { error: { type: 'string' }, code: { type: 'string' } },
-      required: ['error', 'code'],
-    },
+    201: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, required: ['id', 'name'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
   },
 };
 
-const startAuditSessionSchema = {
+const updateAuditSessionSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {
+      name: { type: 'string', minLength: 1, maxLength: 100 },
+      scope_type: { type: 'string', enum: ['SITE', 'DEPARTMENT', 'ALL', 'BUILDING', 'FLOOR', 'ROOM'] },
+      scope_id: { type: 'string', format: 'uuid' },
+      due_at: { type: 'string' },
+      lead_auditor_id: { type: 'string', format: 'uuid' },
+      notify_assignees: { type: 'boolean' },
+      require_signature: { type: 'boolean' },
+      require_photo: { type: 'boolean' },
+      offline_enabled: { type: 'boolean' },
+    },
+  },
+  response: {
+    200: { type: 'object', additionalProperties: true },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
+};
+
+const deleteAuditSessionSchema = {
   params: {
     type: 'object',
     properties: { id: { type: 'string', format: 'uuid' } },
@@ -187,7 +134,6 @@ const startAuditSessionSchema = {
   },
   response: {
     200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
-    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
     404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
   },
 };
@@ -208,6 +154,40 @@ const scanAssetSchema = {
       photo_base64: { type: 'string' },
     },
     required: ['asset_tag'],
+  },
+  response: {
+    200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
+};
+
+const reconcileDiscrepancySchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' }, discrepancyId: { type: 'string', format: 'uuid' } },
+    required: ['id', 'discrepancyId'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      action: { type: 'string', enum: ['confirm_match', 'mark_missing', 'mark_damaged', 'update_location', 'ignore'] },
+      location_id: { type: 'string', format: 'uuid' },
+    },
+    required: ['action'],
+  },
+  response: {
+    200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
+};
+
+const startAuditSessionSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
   },
   response: {
     200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
@@ -261,29 +241,78 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
     if (scope_type) where.scope_type = scope_type;
 
     const [sessions, total] = await Promise.all([
-          app.prisma.auditSession.findMany({
-            where,
-            skip: (page - 1) * limit,
-            take: limit,
-            orderBy: { created_at: 'desc' },
-            include: {
-              // scope relation doesn't exist - scope_type/scope_id are polymorphic
-              _count: { select: { items: true } },
-            },
-          }),
-          app.prisma.auditSession.count({ where }),
-        ]);
+      app.prisma.auditSession.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          // scope relation doesn't exist - scope_type/scope_id are polymorphic
+          _count: { select: { items: true } },
+        },
+      }),
+      app.prisma.auditSession.count({ where }),
+    ]);
 
     return {
-          data: sessions.map(s => ({
-            ...s,
-            scope_name: null, // polymorphic - resolved separately
-            scanned_count: s._count.items,
-            total_assets: s._count.items,
-            _count: undefined,
-          })),
-          pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
-        };
+      data: sessions.map(s => ({
+        ...s,
+        scope_name: null, // polymorphic - resolved separately
+        scanned_count: s._count.items,
+        total_assets: s._count.items,
+        _count: undefined,
+      })),
+      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+    };
+  });
+
+  // Get audit session by ID
+    app.get('/:id', async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const session = await app.prisma.auditSession.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
+      include: {
+        lead_auditor: { select: { id: true, first_name: true, last_name: true, email: true } },
+        auditors: { select: { id: true, first_name: true, last_name: true, email: true } },
+        items: {
+          include: {
+            asset: { select: { id: true, asset_tag: true, make: true, model: true, location_id: true } },
+            expected_location: { select: { id: true, name: true } },
+            scanned_location: { select: { id: true, name: true } },
+            discrepancy: true,
+          },
+          orderBy: { created_at: 'asc' },
+        },
+        discrepancies: {
+          include: {
+            asset: { select: { id: true, asset_tag: true, make: true, model: true } },
+            expected_location: { select: { id: true, name: true } },
+            found_location: { select: { id: true, name: true } },
+            resolved_by: { select: { id: true, first_name: true, last_name: true } },
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
+    }
+
+    // Calculate counts
+    const found_count = session.items.filter(i => i.status === 'FOUND').length;
+    const missing_count = session.items.filter(i => i.status === 'MISSING').length;
+    const mismatched_count = session.items.filter(i => i.status === 'MISMATCHED').length;
+    const damaged_count = session.items.filter(i => i.status === 'DAMAGED').length;
+
+    return {
+      ...session,
+      found_count,
+      missing_count,
+      mismatched_count,
+      damaged_count,
+      scanned_count: session.items.length,
+      total_assets: session.items.length,
+    };
   });
 
   // Create audit session
@@ -303,30 +332,81 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const session = await app.prisma.auditSession.create({
-                data: {
-                  tenant_id: tenantId,
-                  name: request.body.name,
-                  scope_type: request.body.scope_type,
-                  scope_id: request.body.scope_id,
-                  scope_name: scopeName,
-                  status: 'SCHEDULED',
-                  due_at: request.body.due_at ? new Date(request.body.due_at) : null,
-                  lead_auditor_id: request.body.lead_auditor_id || null,
-                  notify_assignees: request.body.notify_assignees ?? true,
-                  require_signature: request.body.require_signature ?? false,
-                  require_photo: request.body.require_photo ?? false,
-                  offline_enabled: request.body.offline_enabled ?? true,
-                  created_by_id: userId,
-                },
-              });
+      data: {
+        tenant_id: tenantId,
+        name: request.body.name,
+        scope_type: request.body.scope_type,
+        scope_id: request.body.scope_id,
+        scope_name: scopeName,
+        status: 'SCHEDULED',
+        due_at: request.body.due_at ? new Date(request.body.due_at) : null,
+        lead_auditor_id: request.body.lead_auditor_id || null,
+        notify_assignees: request.body.notify_assignees ?? true,
+        require_signature: request.body.require_signature ?? false,
+        require_photo: request.body.require_photo ?? false,
+        offline_enabled: request.body.offline_enabled ?? true,
+        created_by_id: userId,
+      },
+    });
 
-    return { ...session, scope_name: scopeName, items: [], discrepancies: [] };
+    return reply.status(201).send({ id: session.id, name: session.name });
+  });
+
+  // Update audit session
+  app.put('/:id', { schema: updateAuditSessionSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+
+    const existing = await app.prisma.auditSession.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
+    });
+    if (!existing) {
+      return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
+    }
+
+    let scopeName = existing.scope_name;
+    if (request.body.scope_id) {
+      if (request.body.scope_type === 'SITE') {
+        const site = await app.prisma.site.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId }, select: { name: true } });
+        scopeName = site?.name || null;
+      } else if (request.body.scope_type === 'DEPARTMENT') {
+        const dept = await app.prisma.department.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId }, select: { name: true } });
+        scopeName = dept?.name || null;
+      }
+    }
+
+    const updated = await app.prisma.auditSession.update({
+      where: { id: request.params.id },
+      data: {
+        ...request.body,
+        scope_name: scopeName,
+        due_at: request.body.due_at ? new Date(request.body.due_at) : null,
+      },
+    });
+
+    return updated;
+  });
+
+  // Delete audit session
+  app.delete('/:id', { schema: deleteAuditSessionSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+
+    const existing = await app.prisma.auditSession.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
+    });
+    if (!existing) {
+      return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
+    }
+
+    await app.prisma.auditSession.delete({
+      where: { id: request.params.id },
+    });
+
+    return { message: 'Audit session deleted' };
   });
 
   // Start audit session
   app.post('/:id/start', { schema: startAuditSessionSchema }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = (request.user as { id: string }).id;
 
     const session = await app.prisma.auditSession.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
@@ -336,12 +416,13 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
     }
 
-    if (session.status !== 'DRAFT') {
-      return reply.code(400).send({ error: 'Session not in draft status', code: 'INVALID_STATUS' });
+    if (session.status !== 'SCHEDULED') {
+      return reply.code(400).send({ error: 'Session not in scheduled status', code: 'INVALID_STATUS' });
     }
 
     // Get assets based on scope
     let assets: any[] = [];
+
     if (session.scope_type === 'SITE' && session.scope_id) {
       assets = await app.prisma.asset.findMany({
         where: { tenant_id: tenantId, site_id: session.scope_id, status: { not: 'DISPOSED' } },
@@ -454,7 +535,7 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
       scannedLocation = await app.prisma.location.findFirst({ where: { id: location_id } });
     }
 
-    const discrepancy = item.expected_location_id !== location_id 
+    const discrepancy = item.expected_location_id !== location_id
       ? { type: 'LOCATION_MISMATCH', expected_qty: 1, actual_qty: 1 }
       : null;
 
@@ -475,6 +556,62 @@ const auditRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return { message: `Asset scanned as ${status}` };
+  });
+
+  // Reconcile discrepancy
+  app.post('/:id/discrepancies/:discrepancyId/resolve', { schema: reconcileDiscrepancySchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const { action, location_id } = request.body as any;
+
+    const discrepancy = await app.prisma.auditDiscrepancy.findFirst({
+      where: { id: request.params.discrepancyId, session_id: request.params.id, tenant_id: tenantId },
+      include: { asset: true },
+    });
+
+    if (!discrepancy) {
+      return reply.code(404).send({ error: 'Discrepancy not found', code: 'NOT_FOUND' });
+    }
+
+    if (action === 'confirm_match') {
+      await app.prisma.auditDiscrepancy.update({
+        where: { id: discrepancy.id },
+        data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Confirmed match' },
+      });
+    } else if (action === 'mark_missing') {
+      await app.prisma.auditDiscrepancy.update({
+        where: { id: discrepancy.id },
+        data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Marked as missing' },
+      });
+      await app.prisma.auditItem.update({
+        where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
+        data: { status: 'MISSING' },
+      });
+    } else if (action === 'mark_damaged') {
+      await app.prisma.auditDiscrepancy.update({
+        where: { id: discrepancy.id },
+        data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Marked as damaged' },
+      });
+      await app.prisma.auditItem.update({
+        where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
+        data: { status: 'DAMAGED' },
+      });
+    } else if (action === 'update_location' && location_id) {
+      await app.prisma.auditDiscrepancy.update({
+        where: { id: discrepancy.id },
+        data: { status: 'RESOLVED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Location updated' },
+      });
+      await app.prisma.auditItem.update({
+        where: { session_id: request.params.id, asset_id: discrepancy.asset_id },
+        data: { scanned_location_id: location_id, status: 'FOUND' },
+      });
+    } else if (action === 'ignore') {
+      await app.prisma.auditDiscrepancy.update({
+        where: { id: discrepancy.id },
+        data: { status: 'IGNORED', resolved_at: new Date(), resolved_by_id: (request.user as { id: string }).id, resolution_notes: 'Ignored' },
+      });
+    }
+
+    return { message: 'Discrepancy resolved' };
   });
 
   // Complete audit session

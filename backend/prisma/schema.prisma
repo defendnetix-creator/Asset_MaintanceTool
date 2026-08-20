@@ -179,6 +179,8 @@ model User {
   maintenance_labor      MaintenanceLabor[]   @relation("MaintenanceLaborTechnician")
   groups                UserGroupMember[]
   performed_events      AssetEvent[]   @relation("AssetEventPerformedBy")
+  led_audits            AuditSession[] @relation("AuditLeadAuditor")
+  audit_memberships     AuditSession[] @relation("AuditAuditors")
 
   @@unique([tenant_id, email])
   @@index([tenant_id, status])
@@ -283,6 +285,8 @@ model Location {
   assets      Asset[]
   audit_expected_locations AuditSessionItem[] @relation("AuditExpectedLocation")
   audit_scanned_locations AuditSessionItem[] @relation("AuditScannedLocation")
+  audit_discrepancy_expected AuditDiscrepancy[] @relation("AuditDiscrepancyExpectedLocation")
+  audit_discrepancy_found AuditDiscrepancy[] @relation("AuditDiscrepancyFoundLocation")
 
   @@unique([tenant_id, site_id, code])
   @@index([tenant_id, site_id])
@@ -708,6 +712,8 @@ model AuditSession {
   created_at      DateTime          @default(now())
   updated_at      DateTime          @updatedAt
   completed_at    DateTime?
+  lead_auditor    User?           @relation("AuditLeadAuditor", fields: [lead_auditor_id], references: [id])
+  auditors        User[]          @relation("AuditAuditors")
   items           AuditSessionItem[]
   discrepancies   AuditDiscrepancy[]
 
@@ -760,6 +766,10 @@ model AuditDiscrepancy {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
   items           AuditSessionItem[]
+  expected_location_id String?
+  expected_location Location? @relation("AuditDiscrepancyExpectedLocation", fields: [expected_location_id], references: [id])
+  found_location_id String?
+  found_location  Location? @relation("AuditDiscrepancyFoundLocation", fields: [found_location_id], references: [id])
 
   @@index([session_id, status])
   @@index([asset_id])
