@@ -1,51 +1,13 @@
 // backend/src/routes/admin.ts
-// Admin routes
+// Admin routes - using inline JSON schemas for Fastify compatibility
 
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
-// Tenant settings response schema
-const tenantSettingsResponse = z.object({
-  asset_tag_prefix: z.string().nullable(),
-  asset_tag_format: z.string(),
-  asset_tag_counter: z.number(),
-  password_min_length: z.number(),
-  password_require_upper: z.boolean(),
-  password_require_lower: z.boolean(),
-  password_require_number: z.boolean(),
-  password_require_symbol: z.boolean(),
-  password_max_age_days: z.number(),
-  password_history_count: z.number(),
-  mfa_required_for_admins: z.boolean(),
-  mfa_required_for_all: z.boolean(),
-  mfa_methods: z.array(z.string()),
-  session_absolute_timeout_minutes: z.number(),
-  session_idle_timeout_minutes: z.number(),
-  max_concurrent_sessions: z.number(),
-  ip_allowlist_enabled: z.boolean(),
-  ip_allowlist_cidrs: z.array(z.string()),
-  sso_enabled: z.boolean(),
-  sso_provider: z.string().nullable(),
-  sso_entity_id: z.string().nullable(),
-  sso_sso_url: z.string().nullable(),
-  sso_slo_url: z.string().nullable(),
-  sso_jit_provisioning: z.boolean(),
-  audit_log_retention_days: z.number(),
-  asset_history_retention_days: z.number(),
-  deleted_user_retention_days: z.number(),
-  export_retention_days: z.number(),
-  backup_retention_days: z.number(),
-});
-
-const errorResponse = z.object({ error: z.string(), code: z.string() });
-
-const settingsSchema = {
-  response: {
-    200: tenantSettingsResponse,
-    403: errorResponse,
-  },
-};
+// ============================================
+// Zod Schemas for validation (input only)
+// ============================================
 
 const updateSettingsBody = z.object({
   asset_tag_prefix: z.string().max(10).optional(),
@@ -80,34 +42,12 @@ const updateSettingsBody = z.object({
   backup_retention_days: z.number().int().positive().optional(),
 });
 
-const brandingResponse = z.object({
-  logo_light_url: z.string().nullable(),
-  logo_dark_url: z.string().nullable(),
-  favicon_url: z.string().nullable(),
-  primary_color: z.string().nullable(),
-  login_background_url: z.string().nullable(),
-});
-
 const updateBrandingBody = z.object({
   logo_light: z.string().optional(),
   logo_dark: z.string().optional(),
   favicon: z.string().optional(),
   primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   login_background: z.string().optional(),
-});
-
-const subscriptionResponse = z.object({
-  plan: z.string(),
-  status: z.string(),
-  assets_used: z.number(),
-  assets_limit: z.number(),
-  users_used: z.number(),
-  users_limit: z.number(),
-  storage_used_gb: z.number(),
-  storage_limit_gb: z.number(),
-  billing_cycle: z.string(),
-  next_billing_date: z.string().nullable(),
-  payment_method: z.object({ type: z.string(), last4: z.string() }).nullable(),
 });
 
 const auditLogQuery = z.object({
@@ -120,33 +60,251 @@ const auditLogQuery = z.object({
   end_date: z.string().datetime().optional(),
 });
 
-const auditLogResponse = z.object({
-  data: z.array(z.object({
-    id: z.string(),
-    user_id: z.string().nullable(),
-    action: z.string(),
-    resource_type: z.string(),
-    resource_id: z.string().nullable(),
-    ip_address: z.string().nullable(),
-    created_at: z.string(),
-  })),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    total_pages: z.number(),
-  }),
-});
+// ============================================
+// Inline JSON Schemas for responses
+// ============================================
 
-const verifyAuditResponse = z.object({
-  verified: z.boolean(),
-  checked: z.number(),
-  tampered: z.array(z.object({
-    id: z.string(),
-    expected_hash: z.string(),
-    actual_hash: z.string(),
-  })),
-});
+const errorResponse = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    code: { type: 'string' },
+  },
+  required: ['error', 'code'],
+};
+
+const messageResponse = {
+  type: 'object',
+  properties: {
+    message: { type: 'string' },
+  },
+  required: ['message'],
+};
+
+const tenantSettingsResponse = {
+  type: 'object',
+  properties: {
+    asset_tag_prefix: { type: 'string', nullable: true },
+    asset_tag_format: { type: 'string' },
+    asset_tag_counter: { type: 'number' },
+    password_min_length: { type: 'number' },
+    password_require_upper: { type: 'boolean' },
+    password_require_lower: { type: 'boolean' },
+    password_require_number: { type: 'boolean' },
+    password_require_symbol: { type: 'boolean' },
+    password_max_age_days: { type: 'number' },
+    password_history_count: { type: 'number' },
+    mfa_required_for_admins: { type: 'boolean' },
+    mfa_required_for_all: { type: 'boolean' },
+    mfa_methods: { type: 'array', items: { type: 'string' } },
+    session_absolute_timeout_minutes: { type: 'number' },
+    session_idle_timeout_minutes: { type: 'number' },
+    max_concurrent_sessions: { type: 'number' },
+    ip_allowlist_enabled: { type: 'boolean' },
+    ip_allowlist_cidrs: { type: 'array', items: { type: 'string' } },
+    sso_enabled: { type: 'boolean' },
+    sso_provider: { type: 'string', nullable: true },
+    sso_entity_id: { type: 'string', nullable: true },
+    sso_sso_url: { type: 'string', nullable: true },
+    sso_slo_url: { type: 'string', nullable: true },
+    sso_jit_provisioning: { type: 'boolean' },
+    audit_log_retention_days: { type: 'number' },
+    asset_history_retention_days: { type: 'number' },
+    deleted_user_retention_days: { type: 'number' },
+    export_retention_days: { type: 'number' },
+    backup_retention_days: { type: 'number' },
+  },
+  required: ['asset_tag_prefix', 'asset_tag_format', 'asset_tag_counter', 'password_min_length', 'password_require_upper', 'password_require_lower', 'password_require_number', 'password_require_symbol', 'password_max_age_days', 'password_history_count', 'mfa_required_for_admins', 'mfa_required_for_all', 'mfa_methods', 'session_absolute_timeout_minutes', 'session_idle_timeout_minutes', 'max_concurrent_sessions', 'ip_allowlist_enabled', 'ip_allowlist_cidrs', 'sso_enabled', 'sso_provider', 'sso_entity_id', 'sso_sso_url', 'sso_slo_url', 'sso_jit_provisioning', 'audit_log_retention_days', 'asset_history_retention_days', 'deleted_user_retention_days', 'export_retention_days', 'backup_retention_days'],
+};
+
+const brandingResponse = {
+  type: 'object',
+  properties: {
+    logo_light_url: { type: 'string', nullable: true },
+    logo_dark_url: { type: 'string', nullable: true },
+    favicon_url: { type: 'string', nullable: true },
+    primary_color: { type: 'string', nullable: true },
+    login_background_url: { type: 'string', nullable: true },
+  },
+  required: ['logo_light_url', 'logo_dark_url', 'favicon_url', 'primary_color', 'login_background_url'],
+};
+
+const subscriptionResponse = {
+  type: 'object',
+  properties: {
+    plan: { type: 'string' },
+    status: { type: 'string' },
+    assets_used: { type: 'number' },
+    assets_limit: { type: 'number' },
+    users_used: { type: 'number' },
+    users_limit: { type: 'number' },
+    storage_used_gb: { type: 'number' },
+    storage_limit_gb: { type: 'number' },
+    billing_cycle: { type: 'string' },
+    next_billing_date: { type: 'string', nullable: true },
+    payment_method: { type: 'object', properties: { type: { type: 'string' }, last4: { type: 'string' } }, nullable: true },
+  },
+  required: ['plan', 'status', 'assets_used', 'assets_limit', 'users_used', 'users_limit', 'storage_used_gb', 'storage_limit_gb', 'billing_cycle', 'next_billing_date', 'payment_method'],
+};
+
+const auditLogResponse = {
+  type: 'object',
+  properties: {
+    data: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          user_id: { type: 'string', nullable: true },
+          action: { type: 'string' },
+          resource_type: { type: 'string' },
+          resource_id: { type: 'string', nullable: true },
+          ip_address: { type: 'string', nullable: true },
+          created_at: { type: 'string' },
+        },
+        required: ['id', 'user_id', 'action', 'resource_type', 'resource_id', 'ip_address', 'created_at'],
+      },
+    },
+    pagination: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        total: { type: 'number' },
+        total_pages: { type: 'number' },
+      },
+      required: ['page', 'limit', 'total', 'total_pages'],
+    },
+  },
+  required: ['data', 'pagination'],
+};
+
+const verifyAuditResponse = {
+  type: 'object',
+  properties: {
+    verified: { type: 'boolean' },
+    checked: { type: 'number' },
+    tampered: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          expected_hash: { type: 'string' },
+          actual_hash: { type: 'string' },
+        },
+        required: ['id', 'expected_hash', 'actual_hash'],
+      },
+    },
+  },
+  required: ['verified', 'checked', 'tampered'],
+};
+
+// ============================================
+// Route Schemas
+// ============================================
+
+const settingsSchema = {
+  response: {
+    200: tenantSettingsResponse,
+    403: errorResponse,
+  },
+};
+
+const updateSettingsSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      asset_tag_prefix: { type: 'string', maxLength: 10 },
+      asset_tag_format: { type: 'string' },
+      password_min_length: { type: 'integer', minimum: 8, maximum: 64 },
+      password_require_upper: { type: 'boolean' },
+      password_require_lower: { type: 'boolean' },
+      password_require_number: { type: 'boolean' },
+      password_require_symbol: { type: 'boolean' },
+      password_max_age_days: { type: 'integer', minimum: 1 },
+      password_history_count: { type: 'integer', minimum: 0 },
+      mfa_required_for_admins: { type: 'boolean' },
+      mfa_required_for_all: { type: 'boolean' },
+      mfa_methods: { type: 'array', items: { type: 'string', enum: ['totp', 'passkey', 'sms'] } },
+      session_absolute_timeout_minutes: { type: 'integer', minimum: 1 },
+      session_idle_timeout_minutes: { type: 'integer', minimum: 1 },
+      max_concurrent_sessions: { type: 'integer', minimum: 1 },
+      ip_allowlist_enabled: { type: 'boolean' },
+      ip_allowlist_cidrs: { type: 'array', items: { type: 'string' } },
+      sso_enabled: { type: 'boolean' },
+      sso_provider: { type: 'string', enum: ['azure-ad', 'okta', 'google', 'custom'] },
+      sso_entity_id: { type: 'string' },
+      sso_sso_url: { type: 'string' },
+      sso_slo_url: { type: 'string' },
+      sso_certificate: { type: 'string' },
+      sso_attribute_mapping: { type: 'object' },
+      sso_jit_provisioning: { type: 'boolean' },
+      audit_log_retention_days: { type: 'integer', minimum: 1 },
+      asset_history_retention_days: { type: 'integer', minimum: 1 },
+      deleted_user_retention_days: { type: 'integer', minimum: 1 },
+      export_retention_days: { type: 'integer', minimum: 1 },
+      backup_retention_days: { type: 'integer', minimum: 1 },
+    },
+  },
+  response: {
+    200: messageResponse,
+    403: errorResponse,
+  },
+};
+
+const brandingSchema = {
+  response: {
+    200: brandingResponse,
+  },
+};
+
+const updateBrandingSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      logo_light: { type: 'string' },
+      logo_dark: { type: 'string' },
+      favicon: { type: 'string' },
+      primary_color: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+      login_background: { type: 'string' },
+    },
+  },
+  response: {
+    200: messageResponse,
+  },
+};
+
+const subscriptionSchema = {
+  response: {
+    200: subscriptionResponse,
+  },
+};
+
+const auditLogSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'integer', minimum: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100 },
+      user_id: { type: 'string', format: 'uuid' },
+      action: { type: 'string' },
+      resource_type: { type: 'string' },
+      start_date: { type: 'string', format: 'date-time' },
+      end_date: { type: 'string', format: 'date-time' },
+    },
+  },
+  response: {
+    200: auditLogResponse,
+  },
+};
+
+const verifyAuditSchema = {
+  response: {
+    200: verifyAuditResponse,
+  },
+};
 
 interface AuthUser {
   id: string;
@@ -176,7 +334,7 @@ export async function adminRoutes(app: FastifyInstance) {
     return settings;
   });
 
-  api.patch('/settings', { schema: { body: updateSettingsBody, response: { 200: z.object({ message: z.string() }), 403: errorResponse } } }, async (request, reply) => {
+  api.patch('/settings', { schema: updateSettingsSchema }, async (request, reply) => {
     const user = request.user as AuthUser | undefined;
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
       return reply.code(403).send({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS' });
@@ -192,7 +350,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // Branding
-  api.get('/branding', { schema: { response: { 200: brandingResponse } } }, async (request) => {
+  api.get('/branding', { schema: brandingSchema }, async (request) => {
     const tenant = await app.prisma.tenant.findUnique({
       where: { id: request.tenantId! },
       select: { logo_url: true, primary_color: true },
@@ -207,7 +365,7 @@ export async function adminRoutes(app: FastifyInstance) {
     };
   });
 
-  api.patch('/branding', { schema: { body: updateBrandingBody, response: { 200: z.object({ message: z.string() }) } } }, async (request, reply) => {
+  api.patch('/branding', { schema: updateBrandingSchema }, async (request, reply) => {
     const user = request.user as AuthUser | undefined;
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
       return reply.code(403).send({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS' });
@@ -226,7 +384,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // Subscription info
-  api.get('/subscription', { schema: { response: { 200: subscriptionResponse } } }, async (request) => {
+  api.get('/subscription', { schema: subscriptionSchema }, async (request) => {
     const tenant = await app.prisma.tenant.findUnique({
       where: { id: request.tenantId! },
       select: { plan: true, max_assets: true, max_users: true, max_storage_gb: true },
@@ -253,7 +411,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // Audit log
-  api.get('/audit-log', { schema: { querystring: auditLogQuery, response: { 200: auditLogResponse } } }, async (request) => {
+  api.get('/audit-log', { schema: auditLogSchema }, async (request) => {
     const user = request.user as AuthUser | undefined;
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
       return { data: [], pagination: { page: 1, limit: 50, total: 0, total_pages: 0 } };
@@ -281,7 +439,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // Verify integrity
-  api.post('/audit-log/verify', { schema: { response: { 200: verifyAuditResponse } } }, async (request, reply) => {
+  api.post('/audit-log/verify', { schema: verifyAuditSchema }, async (request, reply) => {
     const user = request.user as AuthUser | undefined;
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
       return reply.code(403).send({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS' });
@@ -314,3 +472,4 @@ export async function adminRoutes(app: FastifyInstance) {
     return { verified: tampered.length === 0, checked: logs.length, tampered };
   });
 }
+

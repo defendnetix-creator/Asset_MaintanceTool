@@ -1,5 +1,5 @@
 // backend/src/routes/index.ts
-// Main routes registration
+// Main routes registration - pass app directly to route modules (they create their own api)
 
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -21,10 +21,7 @@ import { notificationRoutes } from './notifications.js';
 import { settingsRoutes } from './settings.js';
 
 export async function registerRoutes(app: FastifyInstance) {
-  // API version prefix
-  const api = app.withTypeProvider<ZodTypeProvider>();
-
-  // Register all route modules
+  // Register all route modules with prefixes - pass app directly
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(assetRoutes, { prefix: '/api/assets' });
   await app.register(auditRoutes, { prefix: '/api/audits' });

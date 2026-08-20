@@ -1,5 +1,5 @@
 // backend/src/routes/agents.ts
-// Agent routes
+// Agent routes - using inline JSON schemas for Fastify compatibility
 
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -7,54 +7,8 @@ import { z } from 'zod';
 import crypto from 'crypto';
 
 // ============================================
-// Zod Schemas
+// Zod Schemas for validation (input only)
 // ============================================
-
-const agentListItemSchema = z.object({
-  id: z.string(),
-  asset_id: z.string().nullable(),
-  enrollment_token: z.string(),
-  hostname: z.string().nullable(),
-  os: z.string().nullable(),
-  os_version: z.string().nullable(),
-  agent_version: z.string().nullable(),
-  status: z.string(),
-  last_seen: z.string().nullable(),
-  enrolled_at: z.string(),
-  asset: z.object({ id: z.string(), asset_tag: z.string() }).nullable(),
-});
-
-const agentsListResponse = z.object({
-  data: z.array(agentListItemSchema),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    total_pages: z.number(),
-  }),
-});
-
-const agentDetailResponse = z.object({
-  id: z.string(),
-  asset_id: z.string().nullable(),
-  enrollment_token: z.string(),
-  hostname: z.string().nullable(),
-  os: z.string().nullable(),
-  os_version: z.string().nullable(),
-  agent_version: z.string().nullable(),
-  status: z.string(),
-  last_seen: z.string().nullable(),
-  last_ip: z.string().nullable(),
-  enrolled_at: z.string(),
-  enrolled_by: z.object({ id: z.string(), first_name: z.string(), last_name: z.string() }).nullable(),
-  sync_interval_seconds: z.number(),
-  data_categories: z.array(z.string()),
-  privacy_mode: z.boolean(),
-  auto_update: z.boolean(),
-  asset: z.object({ id: z.string(), asset_tag: z.string() }).nullable(),
-  hardware: z.unknown().nullable(),
-  software: z.array(z.unknown()).nullable(),
-});
 
 const createAgentInput = z.object({
   asset_id: z.string().uuid().optional(),
@@ -74,113 +28,286 @@ const updateAgentInput = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'REVOKED']).optional(),
 });
 
-const regenerateTokenResponse = z.object({ enrollment_token: z.string() });
+// ============================================
+// Inline JSON Schemas for responses
+// ============================================
 
-const agentLogsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
-});
+const errorResponse = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    code: { type: 'string' },
+  },
+  required: ['error', 'code'],
+};
 
-const agentLogsResponse = z.object({
-  data: z.array(z.object({
-    id: z.string(),
-    received_at: z.string(),
-    ip_address: z.string().nullable(),
-    data: z.unknown(),
-  })),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    total_pages: z.number(),
-  }),
-});
+const messageResponse = {
+  type: 'object',
+  properties: {
+    message: { type: 'string' },
+  },
+  required: ['message'],
+};
 
-const agentSoftwareQuerySchema = z.object({
-  search: z.string().optional(),
-  category: z.string().optional(),
-  authorized_only: z.boolean().optional(),
-});
+const agentsListResponse = {
+  type: 'object',
+  properties: {
+    data: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          asset_id: { type: 'string', nullable: true },
+          enrollment_token: { type: 'string' },
+          hostname: { type: 'string', nullable: true },
+          os: { type: 'string', nullable: true },
+          os_version: { type: 'string', nullable: true },
+          agent_version: { type: 'string', nullable: true },
+          status: { type: 'string' },
+          last_seen: { type: 'string', nullable: true },
+          enrolled_at: { type: 'string' },
+          asset: { type: 'object', properties: { id: { type: 'string' }, asset_tag: { type: 'string' } }, nullable: true },
+        },
+        required: ['id', 'asset_id', 'enrollment_token', 'hostname', 'os', 'os_version', 'agent_version', 'status', 'last_seen', 'enrolled_at', 'asset'],
+      },
+    },
+    pagination: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        total: { type: 'number' },
+        total_pages: { type: 'number' },
+      },
+      required: ['page', 'limit', 'total', 'total_pages'],
+    },
+  },
+  required: ['data', 'pagination'],
+};
 
-const agentSoftwareResponse = z.object({
-  data: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    version: z.string().nullable(),
-    publisher: z.string().nullable(),
-    install_date: z.string().nullable(),
-    size: z.number().nullable(),
-    usage_percent: z.number().nullable(),
-    last_used: z.string().nullable(),
-    category: z.string().nullable(),
-    is_authorized: z.boolean(),
-  })),
-});
+const agentDetailResponse = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    asset_id: { type: 'string', nullable: true },
+    enrollment_token: { type: 'string' },
+    hostname: { type: 'string', nullable: true },
+    os: { type: 'string', nullable: true },
+    os_version: { type: 'string', nullable: true },
+    agent_version: { type: 'string', nullable: true },
+    status: { type: 'string' },
+    last_seen: { type: 'string', nullable: true },
+    last_ip: { type: 'string', nullable: true },
+    enrolled_at: { type: 'string' },
+    enrolled_by: { type: 'object', properties: { id: { type: 'string' }, first_name: { type: 'string' }, last_name: { type: 'string' } }, nullable: true },
+    sync_interval_seconds: { type: 'number' },
+    data_categories: { type: 'array', items: { type: 'string' } },
+    privacy_mode: { type: 'boolean' },
+    auto_update: { type: 'boolean' },
+    asset: { type: 'object', properties: { id: { type: 'string' }, asset_tag: { type: 'string' } }, nullable: true },
+    hardware: { type: 'object', nullable: true },
+    software: { type: 'array', items: { type: 'object' }, nullable: true },
+  },
+  required: ['id', 'asset_id', 'enrollment_token', 'hostname', 'os', 'os_version', 'agent_version', 'status', 'last_seen', 'last_ip', 'enrolled_at', 'enrolled_by', 'sync_interval_seconds', 'data_categories', 'privacy_mode', 'auto_update', 'asset', 'hardware', 'software'],
+};
 
-const createAgentResponse = z.object({ id: z.string(), enrollment_token: z.string() });
-const messageResponse = z.object({ message: z.string() });
-const errorResponse = z.object({ error: z.string(), code: z.string() });
+const createAgentResponse = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    enrollment_token: { type: 'string' },
+  },
+  required: ['id', 'enrollment_token'],
+};
+
+const regenerateTokenResponse = {
+  type: 'object',
+  properties: {
+    enrollment_token: { type: 'string' },
+  },
+  required: ['enrollment_token'],
+};
+
+const agentLogsResponse = {
+  type: 'object',
+  properties: {
+    data: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          received_at: { type: 'string' },
+          ip_address: { type: 'string', nullable: true },
+          data: { type: 'object' },
+        },
+        required: ['id', 'received_at', 'ip_address', 'data'],
+      },
+    },
+    pagination: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        total: { type: 'number' },
+        total_pages: { type: 'number' },
+      },
+      required: ['page', 'limit', 'total', 'total_pages'],
+    },
+  },
+  required: ['data', 'pagination'],
+};
+
+const agentSoftwareResponse = {
+  type: 'object',
+  properties: {
+    data: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          version: { type: 'string', nullable: true },
+          publisher: { type: 'string', nullable: true },
+          install_date: { type: 'string', nullable: true },
+          size: { type: 'number', nullable: true },
+          usage_percent: { type: 'number', nullable: true },
+          last_used: { type: 'string', nullable: true },
+          category: { type: 'string', nullable: true },
+          is_authorized: { type: 'boolean' },
+        },
+        required: ['id', 'name', 'version', 'publisher', 'install_date', 'size', 'usage_percent', 'last_used', 'category', 'is_authorized'],
+      },
+    },
+  },
+  required: ['data'],
+};
 
 // ============================================
-// Route Handlers
+// Route Schemas
 // ============================================
 
 const listAgentsSchema = {
-  querystring: z.object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(25),
-    status: z.string().optional(),
-    os: z.string().optional(),
-  }),
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'integer', minimum: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100 },
+      status: { type: 'string' },
+      os: { type: 'string' },
+    },
+  },
   response: { 200: agentsListResponse },
 };
 
 const getAgentSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: agentDetailResponse, 404: z.object({ error: z.string(), code: z.string() }) },
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: agentDetailResponse,
+    404: errorResponse,
+  },
 };
 
 const createAgentSchema = {
-  body: createAgentInput,
+  body: {
+    type: 'object',
+    properties: {
+      asset_id: { type: 'string', format: 'uuid' },
+      hostname: { type: 'string' },
+      os: { type: 'string', enum: ['windows', 'macos', 'linux'] },
+      sync_interval_seconds: { type: 'integer', minimum: 1 },
+      data_categories: { type: 'array', items: { type: 'string', enum: ['hardware', 'software', 'network', 'security'] } },
+      privacy_mode: { type: 'boolean' },
+      auto_update: { type: 'boolean' },
+    },
+  },
   response: { 201: createAgentResponse },
 };
 
 const updateAgentSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  body: updateAgentInput,
-  response: { 200: messageResponse, 404: z.object({ error: z.string(), code: z.string() }) },
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      sync_interval_seconds: { type: 'integer', minimum: 1 },
+      data_categories: { type: 'array', items: { type: 'string', enum: ['hardware', 'software', 'network', 'security'] } },
+      privacy_mode: { type: 'boolean' },
+      auto_update: { type: 'boolean' },
+      status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'REVOKED'] },
+    },
+  },
+  response: {
+    200: messageResponse,
+    404: errorResponse,
+  },
 };
 
 const deleteAgentSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: messageResponse, 404: z.object({ error: z.string(), code: z.string() }) },
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: messageResponse,
+    404: errorResponse,
+  },
 };
 
 const regenerateTokenSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: regenerateTokenResponse, 404: z.object({ error: z.string(), code: z.string() }) },
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: regenerateTokenResponse,
+    404: errorResponse,
+  },
 };
 
 const agentLogsSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  querystring: z.object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(50),
-    start_date: z.string().datetime().optional(),
-    end_date: z.string().datetime().optional(),
-  }),
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  querystring: {
+    type: 'object',
+    properties: {
+      page: { type: 'integer', minimum: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100 },
+      start_date: { type: 'string', format: 'date-time' },
+      end_date: { type: 'string', format: 'date-time' },
+    },
+  },
   response: { 200: agentLogsResponse },
 };
 
 const agentSoftwareSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  querystring: z.object({
-    search: z.string().optional(),
-    category: z.string().optional(),
-    authorized_only: z.boolean().optional(),
-  }),
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  querystring: {
+    type: 'object',
+    properties: {
+      search: { type: 'string' },
+      category: { type: 'string' },
+      authorized_only: { type: 'boolean' },
+    },
+  },
   response: { 200: agentSoftwareResponse },
 };
 
@@ -189,7 +316,7 @@ export async function agentRoutes(app: FastifyInstance) {
 
   // List agents
   api.get('/', { schema: listAgentsSchema }, async (request) => {
-    const { page, limit, status, os } = request.query;
+    const { page = 1, limit = 25, status, os } = request.query as { page: number; limit: number; status?: string; os?: string };
     const tenantId = request.tenantId!;
 
     const where: Record<string, unknown> = { tenant_id: tenantId };
@@ -248,13 +375,15 @@ export async function agentRoutes(app: FastifyInstance) {
     return reply.code(201).send({ id: enrollment.id, enrollment_token: enrollmentToken });
   });
 
-  // Update enrollment
+  // Update agent
   api.patch('/:id', { schema: updateAgentSchema }, async (request, reply) => {
-    const enrollment = await app.prisma.agentEnrollment.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+    const tenantId = request.tenantId!;
+
+    const agent = await app.prisma.agentEnrollment.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
     });
 
-    if (!enrollment) {
+    if (!agent) {
       return reply.code(404).send({ error: 'Agent not found', code: 'NOT_FOUND' });
     }
 
@@ -266,61 +395,74 @@ export async function agentRoutes(app: FastifyInstance) {
     return { message: 'Agent updated' };
   });
 
-  // Unenroll agent
+  // Delete agent
   api.delete('/:id', { schema: deleteAgentSchema }, async (request, reply) => {
-    const enrollment = await app.prisma.agentEnrollment.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+    const tenantId = request.tenantId!;
+
+    const agent = await app.prisma.agentEnrollment.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
     });
 
-    if (!enrollment) {
+    if (!agent) {
       return reply.code(404).send({ error: 'Agent not found', code: 'NOT_FOUND' });
     }
 
-    await app.prisma.agentEnrollment.update({
+    await app.prisma.agentEnrollment.delete({
       where: { id: request.params.id },
-      data: { status: 'REVOKED', revoked_at: new Date(), revoked_by_id: (request.user as { id: string }).id },
     });
 
-    // Send revoke command via WebSocket
-    if (app.sendAgentCommand) {
-      await app.sendAgentCommand(enrollment.id, 'revoke', {});
-    }
-
-    return { message: 'Agent revoked' };
+    return { message: 'Agent enrollment deleted' };
   });
 
   // Regenerate token
-  api.post('/:id/regenerate-token', { schema: regenerateTokenSchema }, async (request, reply) => {
-    const enrollment = await app.prisma.agentEnrollment.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+  api.post('/:id/token', { schema: regenerateTokenSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+
+    const agent = await app.prisma.agentEnrollment.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
     });
 
-    if (!enrollment) {
+    if (!agent) {
       return reply.code(404).send({ error: 'Agent not found', code: 'NOT_FOUND' });
     }
 
-    const newToken = crypto.randomBytes(32).toString('hex');
+    const enrollmentToken = crypto.randomBytes(32).toString('hex');
+
     await app.prisma.agentEnrollment.update({
       where: { id: request.params.id },
-      data: { enrollment_token: newToken },
+      data: { enrollment_token: enrollmentToken },
     });
 
-    return { enrollment_token: newToken };
+    return { enrollment_token: enrollmentToken };
   });
 
   // Agent logs
-  api.get('/:id/logs', { schema: agentLogsSchema }, async (request) => {
-    const { page, limit, start_date, end_date } = request.query;
+  api.get('/:id/logs', { schema: agentLogsSchema }, async (request, reply) => {
+    const { page = 1, limit = 50, start_date, end_date } = request.query as { page: number; limit: number; start_date?: string; end_date?: string };
+    const tenantId = request.tenantId!;
 
-    const where: Record<string, unknown> = { enrollment_id: request.params.id };
+    const agent = await app.prisma.agentEnrollment.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
+    });
+
+    if (!agent) {
+      return reply.code(404).send({ error: 'Agent not found', code: 'NOT_FOUND' });
+    }
+
+    const where: any = { agent_id: request.params.id };
     if (start_date || end_date) {
       where.received_at = {};
-      if (start_date) (where.received_at as Record<string, Date>).gte = new Date(start_date);
-      if (end_date) (where.received_at as Record<string, Date>).lte = new Date(end_date);
+      if (start_date) where.received_at.gte = new Date(start_date);
+      if (end_date) where.received_at.lte = new Date(end_date);
     }
 
     const [logs, total] = await Promise.all([
-      app.prisma.agentHeartbeat.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { received_at: 'desc' } }),
+      app.prisma.agentHeartbeat.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { received_at: 'desc' },
+      }),
       app.prisma.agentHeartbeat.count({ where }),
     ]);
 
@@ -328,16 +470,36 @@ export async function agentRoutes(app: FastifyInstance) {
   });
 
   // Agent software inventory
-  api.get('/:id/software', { schema: agentSoftwareSchema }, async (request) => {
-    const { search, category, authorized_only } = request.query;
+  api.get('/:id/software', { schema: agentSoftwareSchema }, async (request, reply) => {
+    const { search, category, authorized_only } = request.query as { search?: string; category?: string; authorized_only?: boolean };
+    const tenantId = request.tenantId!;
 
-    const where: Record<string, unknown> = { enrollment_id: request.params.id };
-    if (search) where.name = { contains: search, mode: 'insensitive' };
-    if (category) where.category = category;
-    if (authorized_only) where.is_authorized = true;
+    const agent = await app.prisma.agentEnrollment.findFirst({
+      where: { id: request.params.id, tenant_id: tenantId },
+    });
 
-    const software = await app.prisma.agentSoftware.findMany({ where, orderBy: { name: 'asc' } });
+    if (!agent) {
+      return reply.code(404).send({ error: 'Agent not found', code: 'NOT_FOUND' });
+    }
+
+    const where: any = { agent_id: request.params.id };
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    if (category) {
+      where.category = category;
+    }
+    if (authorized_only) {
+      where.is_authorized = true;
+    }
+
+    const software = await app.prisma.agentSoftware.findMany({
+      where,
+      orderBy: { detected_at: 'desc' },
+      take: 200,
+    });
 
     return { data: software };
   });
 }
+

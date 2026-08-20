@@ -134,6 +134,7 @@ model Tenant {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
   deleted_at        DateTime?
+  users             User[]
 
   @@index([slug])
   @@index([domain])
@@ -142,6 +143,7 @@ model Tenant {
 model User {
   id              String      @id @default(uuid())
   tenant_id       String
+  tenant          Tenant      @relation(fields: [tenant_id], references: [id])
   email           String
   password_hash   String?
   first_name      String
@@ -165,6 +167,17 @@ model User {
   deleted_at      DateTime?
   invited_by      String?
   invited_at      DateTime?
+  assets_custodian    Asset[]   @relation("AssetCustodian")
+  assets_created      Asset[]   @relation("AssetCreatedBy")
+  assets_updated      Asset[]   @relation("AssetUpdatedBy")
+  managed_departments Department[] @relation("DepartmentManager")
+  audit_scanned_items AuditSessionItem[] @relation("AuditScannedBy")
+  audit_resolved_discrepancies AuditDiscrepancy[] @relation("DiscrepancyResolvedBy")
+  maintenance_created    MaintenanceWorkOrder[] @relation("WorkOrderCreatedBy")
+  maintenance_assigned   MaintenanceWorkOrder[] @relation("WorkOrderAssignedBy")
+  maintenance_technician MaintenanceWorkOrder[] @relation("WorkOrderTechnician")
+  maintenance_labor      MaintenanceLabor[]   @relation("MaintenanceLaborTechnician")
+  groups                UserGroupMember[]
 
   @@unique([tenant_id, email])
   @@index([tenant_id, status])
@@ -195,6 +208,7 @@ model UserGroup {
   color       String?  @default("#6366F1")
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  members     UserGroupMember[]
 
   @@unique([tenant_id, name])
 }
@@ -202,7 +216,9 @@ model UserGroup {
 model UserGroupMember {
   id        String     @id @default(uuid())
   user_id   String
+  user      User       @relation(fields: [user_id], references: [id])
   group_id  String
+  group     UserGroup  @relation(fields: [group_id], references: [id])
   role      String     @default("member")
   joined_at DateTime   @default(now())
 
@@ -242,6 +258,8 @@ model Site {
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  assets      Asset[]
+  locations   Location[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id, is_active])
@@ -251,13 +269,19 @@ model Location {
   id          String   @id @default(uuid())
   tenant_id   String
   site_id     String
+  site        Site     @relation(fields: [site_id], references: [id])
   name        String
   code        String
   description String?
   parent_id   String?
+  parent      Location? @relation("LocationHierarchy", fields: [parent_id], references: [id])
+  children    Location[] @relation("LocationHierarchy")
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  assets      Asset[]
+  audit_expected_locations AuditSessionItem[] @relation("AuditExpectedLocation")
+  audit_scanned_locations AuditSessionItem[] @relation("AuditScannedLocation")
 
   @@unique([tenant_id, site_id, code])
   @@index([tenant_id, site_id])
@@ -273,9 +297,12 @@ model Category {
   color       String?  @default("#3B82F6")
   icon        String?  @default("box")
   parent_id   String?
+  parent      Category? @relation("CategoryHierarchy", fields: [parent_id], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  assets      Asset[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id, parent_id])
@@ -289,9 +316,11 @@ model Department {
   description String?
   cost_center String?
   manager_id  String?
+  manager     User?    @relation("DepartmentManager", fields: [manager_id], references: [id])
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  assets      Asset[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id])
@@ -314,6 +343,7 @@ model CustomField {
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+  asset_values  AssetCustomFieldValue[]
 
   @@unique([tenant_id, entity_type, name])
   @@index([tenant_id, entity_type])
@@ -322,7 +352,9 @@ model CustomField {
 model AssetCustomFieldValue {
   id              String         @id @default(uuid())
   asset_id        String
+  asset           Asset          @relation(fields: [asset_id], references: [id])
   custom_field_id String
+  custom_field    CustomField    @relation(fields: [custom_field_id], references: [id])
   value_text      String?
   value_number    Float?
   value_boolean   Boolean?
@@ -350,12 +382,20 @@ model Asset {
   make              String?
   model             String?
   category_id       String?
-
+  category          Category?   @relation(fields: [category_id], references: [id])
+  
   site_id           String?
+  site              Site?       @relation(fields: [site_id], references: [id])
+  
   location_id       String?
+  location          Location?   @relation(fields: [location_id], references: [id])
+  
   department_id     String?
+  department        Department? @relation(fields: [department_id], references: [id])
+  
   custodian_user_id String?
-
+  custodian_user    User?       @relation("AssetCustodian", fields: [custodian_user_id], references: [id])
+  
   status            AssetStatus @default(IN_STOCK)
   condition         String?    @default("Good")
   purchase_date     DateTime?
@@ -366,10 +406,19 @@ model Asset {
 
   asset_tag_counter Int        @default(0)
   created_by_id     String
+  created_by        User        @relation("AssetCreatedBy", fields: [created_by_id], references: [id])
   updated_by_id     String?
+  updated_by        User?       @relation("AssetUpdatedBy", fields: [updated_by_id], references: [id])
   created_at        DateTime   @default(now())
   updated_at        DateTime   @updatedAt
   deleted_at        DateTime?
+  images            AssetImage[]
+  documents         Document[]
+  custom_fields     AssetCustomFieldValue[]
+  tags              AssetTag[]
+  audit_discrepancies AuditDiscrepancy[]
+  audit_items       AuditSessionItem[]
+  maintenance_orders MaintenanceWorkOrder[]
 
   @@unique([tenant_id, normalized_tag])
   @@index([tenant_id, status])
@@ -385,6 +434,7 @@ model Asset {
 model AssetTag {
   id        String  @id @default(uuid())
   asset_id  String
+  asset     Asset   @relation(fields: [asset_id], references: [id])
   tag       String
   created_at DateTime @default(now())
   created_by String?
@@ -396,6 +446,7 @@ model AssetTag {
 model AssetImage {
   id        String   @id @default(uuid())
   asset_id  String
+  asset     Asset    @relation(fields: [asset_id], references: [id])
   url       String
   filename  String
   mime_type String
@@ -413,6 +464,7 @@ model AssetImage {
 model Document {
   id          String   @id @default(uuid())
   asset_id    String?
+  asset       Asset?   @relation(fields: [asset_id], references: [id])
   tenant_id   String
   filename    String
   mime_type   String
@@ -455,6 +507,7 @@ model MaintenanceWorkOrder {
   tenant_id       String
   wo_number       String
   asset_id        String
+  asset           Asset             @relation(fields: [asset_id], references: [id])
   type            MaintenanceType
   status          MaintenanceStatus @default(OPEN)
   priority        Int               @default(3)
@@ -466,6 +519,7 @@ model MaintenanceWorkOrder {
   resolution      String?
 
   technician_id   String?
+  technician      User?             @relation("WorkOrderTechnician", fields: [technician_id], references: [id])
   assigned_at     DateTime?
   started_at      DateTime?
   completed_at    DateTime?
@@ -485,10 +539,18 @@ model MaintenanceWorkOrder {
   parent_wo_id    String?
 
   created_by_id   String
+  created_by      User        @relation("WorkOrderCreatedBy", fields: [created_by_id], references: [id])
   assigned_by_id  String?
+  assigned_by     User?       @relation("WorkOrderAssignedBy", fields: [assigned_by_id], references: [id])
   created_at      DateTime   @default(now())
   updated_at      DateTime   @updatedAt
   deleted_at      DateTime?
+
+  tasks           MaintenanceTask[]
+  parts           MaintenancePart[]
+  labor_entries   MaintenanceLabor[]
+  attachments     MaintenanceAttachment[]
+  notes           MaintenanceNote[]
 
   @@unique([tenant_id, wo_number])
   @@index([tenant_id, status])
@@ -500,6 +562,7 @@ model MaintenanceWorkOrder {
 model MaintenanceTask {
   id          String   @id @default(uuid())
   wo_id       String
+  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id])
   title       String
   description String?
   is_completed Boolean  @default(false)
@@ -515,6 +578,7 @@ model MaintenanceTask {
 model MaintenancePart {
   id          String   @id @default(uuid())
   wo_id       String
+  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id])
   part_name   String
   part_number String?
   quantity    Int      @default(1)
@@ -531,7 +595,9 @@ model MaintenancePart {
 model MaintenanceLabor {
   id          String   @id @default(uuid())
   wo_id       String
+  wo          MaintenanceWorkOrder @relation(fields: [wo_id], references: [id])
   technician_id String
+  technician  User?    @relation("MaintenanceLaborTechnician", fields: [technician_id], references: [id])
   date        DateTime @default(now())
   hours       Decimal  @db.Decimal(4, 2)
   rate        Decimal? @db.Decimal(10, 2)
@@ -545,6 +611,7 @@ model MaintenanceLabor {
 model MaintenanceAttachment {
   id        String   @id @default(uuid())
   wo_id     String
+  wo        MaintenanceWorkOrder @relation(fields: [wo_id], references: [id])
   url       String
   filename  String
   mime_type String
@@ -558,6 +625,7 @@ model MaintenanceAttachment {
 model MaintenanceNote {
   id        String   @id @default(uuid())
   wo_id     String
+  wo        MaintenanceWorkOrder @relation(fields: [wo_id], references: [id])
   author_id String
   content   String
   is_internal Boolean @default(false)
@@ -605,37 +673,39 @@ model Reservation {
 // ─── Audits ───
 
 model AuditSession {
-  id              String       @id @default(uuid())
+  id              String            @id @default(uuid())
   tenant_id       String
   name            String
   scope_type      String
   scope_id        String?
   scope_name      String?
-  status          AuditStatus  @default(SCHEDULED)
+  status          AuditStatus       @default(SCHEDULED)
 
   start_at        DateTime?
   end_at          DateTime?
   due_at          DateTime?
-  timezone        String       @default("UTC")
+  timezone        String            @default("UTC")
 
   lead_auditor_id String?
 
-  total_assets    Int          @default(0)
-  scanned_count   Int          @default(0)
-  found_count     Int          @default(0)
-  missing_count   Int          @default(0)
-  mismatched_count Int         @default(0)
-  damaged_count   Int          @default(0)
+  total_assets    Int               @default(0)
+  scanned_count   Int               @default(0)
+  found_count     Int               @default(0)
+  missing_count   Int               @default(0)
+  mismatched_count Int              @default(0)
+  damaged_count   Int               @default(0)
 
-  notify_assignees Boolean     @default(true)
-  require_signature Boolean    @default(false)
-  require_photo    Boolean     @default(false)
-  offline_enabled  Boolean     @default(true)
+  notify_assignees Boolean          @default(true)
+  require_signature Boolean         @default(false)
+  require_photo    Boolean          @default(false)
+  offline_enabled  Boolean          @default(true)
 
   created_by_id   String
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
   completed_at    DateTime?
+  items           AuditSessionItem[]
+  discrepancies   AuditDiscrepancy[]
 
   @@index([tenant_id, status])
   @@index([tenant_id, due_at])
@@ -643,20 +713,26 @@ model AuditSession {
 }
 
 model AuditSessionItem {
-  id              String           @id @default(uuid())
+  id              String            @id @default(uuid())
   session_id      String
+  session         AuditSession      @relation(fields: [session_id], references: [id])
   asset_id        String
+  asset           Asset             @relation(fields: [asset_id], references: [id])
   expected_location_id String?
+  expected_location Location?       @relation("AuditExpectedLocation", fields: [expected_location_id], references: [id])
   scanned_location_id String?
-  status          AuditItemStatus  @default(MISSING)
+  scanned_location  Location?       @relation("AuditScannedLocation", fields: [scanned_location_id], references: [id])
+  status          AuditItemStatus   @default(MISSING)
   scanned_at      DateTime?
   scanned_by_id   String?
+  scanned_by      User?             @relation("AuditScannedBy", fields: [scanned_by_id], references: [id])
   notes           String?
   photo_url       String?
   signature_url   String?
   discrepancy_id  String?
-  created_at      DateTime         @default(now())
-  updated_at      DateTime         @updatedAt
+  discrepancy     AuditDiscrepancy? @relation(fields: [discrepancy_id], references: [id])
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
 
   @@unique([session_id, asset_id])
   @@index([session_id, status])
@@ -666,16 +742,20 @@ model AuditSessionItem {
 model AuditDiscrepancy {
   id              String   @id @default(uuid())
   session_id      String
+  session         AuditSession @relation(fields: [session_id], references: [id])
   asset_id        String
+  asset           Asset      @relation(fields: [asset_id], references: [id])
   type            String
   severity        String   @default("MEDIUM")
   status          String   @default("OPEN")
   suggested_match_id String?
   resolution      String?
   resolved_by_id  String?
+  resolved_by     User?    @relation("DiscrepancyResolvedBy", fields: [resolved_by_id], references: [id])
   resolved_at     DateTime?
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+  items           AuditSessionItem[]
 
   @@index([session_id, status])
   @@index([asset_id])

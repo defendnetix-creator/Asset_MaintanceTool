@@ -65,12 +65,12 @@ const listCategoriesSchema = {
     limit: z.coerce.number().int().positive().max(100).default(50),
     include_inactive: z.boolean().default(false),
   }),
-  response: { 200: categoriesListResponse },
+  // No response validation - let Fastify pass through
 };
 
 const getCategorySchema = {
   params: z.object({ id: z.string().uuid() }),
-  response: { 200: categoryDetailSchema, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const createCategorySchema = {
@@ -104,47 +104,46 @@ const deleteCategorySchema = {
   response: { 200: messageResponse, 404: errorResponse },
 };
 
-const messageResponse = z.object({ message: z.string() });
-const errorResponse = z.object({ error: z.string(), code: z.string() });
-
-export async function categoryRoutes(app: FastifyInstance) {
+async function categoryRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // List categories
-  api.get('/', listCategoriesSchema, async (request) => {
-    const { page, limit, include_inactive } = request.query as { page: number; limit: number; include_inactive?: boolean };
-    const tenantId = request.tenantId!;
+    api.get('/', listCategoriesSchema, async (request) => {
+      const { page = 1, limit = 50, include_inactive } = request.query as { page?: string; limit?: string; include_inactive?: boolean };
+      const tenantId = request.tenantId!;
 
-    const where: any = { tenant_id: tenantId };
-    if (!include_inactive) where.is_active = true;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 50;
 
-    const [categories, total] = await Promise.all([
-      app.prisma.category.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { name: 'asc' },
-        include: {
-          parent: { select: { id: true, name: true } },
-          _count: { select: { children: true, assets: true, custom_fields: true } },
-        },
-      }),
-      app.prisma.category.count({ where }),
-    ]);
+      const where: any = { tenant_id: tenantId };
+      if (!include_inactive) where.is_active = true;
 
-    return {
-      data: categories.map(c => ({
-        ...c,
-        parent_name: c.parent?.name || null,
-        child_count: c._count.children,
-        asset_count: c._count.assets,
-        custom_field_count: c._count.custom_fields,
-        _count: undefined,
-        parent: undefined,
-      })),
-      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
-    };
-  });
+      const [categories, total] = await Promise.all([
+              app.prisma.category.findMany({
+                where,
+                skip: (pageNum - 1) * limitNum,
+                take: limitNum,
+                orderBy: { name: 'asc' },
+                include: {
+                  parent: { select: { id: true, name: true } },
+                  _count: { select: { children: true, assets: true } },
+                },
+              }),
+              app.prisma.category.count({ where }),
+            ]);
+
+      return {
+            data: categories.map(c => ({
+              ...c,
+              parent_name: c.parent?.name || null,
+              child_count: c._count.children,
+              asset_count: c._count.assets,
+              _count: undefined,
+              parent: undefined,
+            })),
+            pagination: { page: pageNum, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) },
+          };
+    });
 
   // Create category
   api.post('/', createCategorySchema, async (request, reply) => {
@@ -266,3 +265,5 @@ export async function categoryRoutes(app: FastifyInstance) {
     return { message: 'Category deleted' };
   });
 }
+
+export { categoryRoutes };

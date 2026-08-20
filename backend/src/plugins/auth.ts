@@ -1,9 +1,8 @@
 // backend/src/plugins/auth.ts
-// Authentication plugin with JWT (RS256) + Argon2id
+// Authentication plugin with JWT (RS256) + Argon2id - JWT registration moved to index.ts
 
 import { FastifyPluginAsync } from 'fastify';
-import { fastifyJwt } from '@fastify/jwt';
-import { fastifyCookie } from '@fastify/cookie';
+import fastifyCookie from '@fastify/cookie';
 import argon2 from 'argon2';
 import fs from 'fs';
 import path from 'path';
@@ -17,40 +16,14 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return argon2.verify(hash, password);
 }
 
-const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
-const PUBLIC_KEY = process.env.JWT_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/public.pem'), 'utf-8');
-const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');
-const REFRESH_PUBLIC_KEY = process.env.JWT_REFRESH_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/refresh-public.pem'), 'utf-8');
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'change-me-in-production';
 
 export const authPlugin: FastifyPluginAsync = async (app) => {
   // Cookie parsing
   await app.register(fastifyCookie, {
     secret: COOKIE_SECRET,
-    parseOptions: { httpOnly: true, secure: true, sameSite: 'strict' },
+    parseOptions: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' },
     hook: 'onRequest',
-  });
-
-  // Access token JWT (15 min)
-  await app.register(fastifyJwt, {
-    secret: {
-      private: PRIVATE_KEY,
-      public: PUBLIC_KEY,
-    },
-    sign: { algorithm: 'RS256', expiresIn: '15m' },
-    verify: { algorithms: ['RS256'] },
-    cookie: { cookieName: 'accessToken', signed: false },
-  });
-
-  // Refresh token JWT (7 days) - register with different cookie name
-  await app.register(fastifyJwt, {
-    secret: {
-      private: REFRESH_PRIVATE_KEY,
-      public: REFRESH_PUBLIC_KEY,
-    },
-    sign: { algorithm: 'RS256', expiresIn: '7d' },
-    verify: { algorithms: ['RS256'] },
-    cookie: { cookieName: 'refreshToken', signed: false },
   });
 
   // Public route check
@@ -99,15 +72,15 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
       // Try refresh token
       if (request.cookies?.refreshToken) {
         try {
-          const decoded = await request.jwtVerify<{ userId: string }>();
+          const decoded = await request.jwtVerify<{ userId: string }>({ namespace: 'refresh' });
           const user = await app.prisma.user.findUnique({ where: { id: decoded.userId } });
 
           if (user && user.status === 'ACTIVE') {
             const newAccessToken = app.jwt.sign({ userId: user.id, tenantId: user.tenant_id, role: user.role }, { expiresIn: '15m' });
-            const newRefreshToken = app.jwt.sign({ userId: user.id }, { expiresIn: '7d' });
+            const newRefreshToken = app.jwt.sign({ userId: user.id }, { expiresIn: '7d', namespace: 'refresh' });
 
-            reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 15 * 60 });
-            reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 });
+            reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 15 * 60 });
+            reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 });
 
             request.user = { id: user.id, tenantId: user.tenant_id, role: user.role, email: user.email };
             request.tenantId = user.tenant_id;

@@ -1,7 +1,7 @@
 // backend/src/plugins/redis.ts
-// Redis plugin with BullMQ support
+// Redis plugin with BullMQ support - registers directly on main app
 
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { createClient, RedisClientType } from 'redis';
 
 declare module 'fastify' {

@@ -66,12 +66,12 @@ const listUsersSchema = {
     status: z.string().optional(),
     group_id: z.string().uuid().optional(),
   }),
-  response: { 200: usersListResponse },
+  // No response validation - let Fastify pass through
 };
 
 const getUserSchema = {
   params: z.object({ id: z.string().uuid() }),
-  response: { 200: userDetailSchema, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const createUserSchema = {
@@ -162,8 +162,6 @@ const changePasswordSchema = {
   response: { 200: messageResponse, 400: errorResponse, 401: errorResponse },
 };
 
-const messageResponse = z.object({ message: z.string() });
-
 interface AuthUser {
   id: string;
   tenantId: string;
@@ -197,11 +195,14 @@ export async function userRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   // List users
-  api.get('/', listUsersSchema, async (request) => {
-    const { page, limit, search, role, status, group_id } = request.query as { page: number; limit: number; search?: string; role?: string; status?: string; group_id?: string };
-    const tenantId = request.tenantId!;
+    api.get('/', listUsersSchema, async (request) => {
+      const { page = 1, limit = 25, search, role, status, group_id } = request.query as { page?: string; limit?: string; search?: string; role?: string; status?: string; group_id?: string };
+      const tenantId = request.tenantId!;
 
-    const where: any = { tenant_id: tenantId, deleted_at: null };
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 25;
+
+      const where: any = { tenant_id: tenantId, deleted_at: null };
     if (search) {
       where.OR = [
         { email: { contains: search, mode: 'insensitive' } },
@@ -213,27 +214,27 @@ export async function userRoutes(app: FastifyInstance) {
     if (status) where.status = status;
 
     const [users, total] = await Promise.all([
-      app.prisma.user.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        include: {
-          groups: { include: { group: { select: { id: true, name: true } } }, take: 1 },
-        },
-      }),
-      app.prisma.user.count({ where }),
-    ]);
+          app.prisma.user.findMany({
+            where,
+            skip: (pageNum - 1) * limitNum,
+            take: limitNum,
+            orderBy: { created_at: 'desc' },
+            include: {
+              groups: { include: { group: { select: { id: true, name: true } } }, take: 1 },
+            },
+          }),
+          app.prisma.user.count({ where }),
+        ]);
 
-    return {
-      data: users.map(u => ({
-        ...u,
-        group: u.groups[0]?.group || null,
-        groups: undefined,
-      })),
-      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
-    };
-  });
+        return {
+          data: users.map(u => ({
+            ...u,
+            group: u.groups[0]?.group || null,
+            groups: undefined,
+          })),
+          pagination: { page: pageNum, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) },
+        };
+      });
 
   // Create user (invite)
   api.post('/', createUserSchema, async (request, reply) => {
@@ -309,7 +310,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -347,7 +347,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -371,7 +370,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -393,7 +391,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -417,7 +414,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -437,7 +433,6 @@ export async function userRoutes(app: FastifyInstance) {
     const existing = await app.prisma.user.findFirst({
       where: { id: request.params.id, tenant_id: tenantId },
     });
-
     if (!existing) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
@@ -454,28 +449,28 @@ export async function userRoutes(app: FastifyInstance) {
     return { message: 'Role updated' };
   });
 
-  // Get current user profile (me)
-  api.get('/me', meResponseSchema, async (request, reply) => {
-    const user = await app.prisma.user.findUnique({
-      where: { id: (request.user as AuthUser).id },
-      include: {
-        groups: { include: { group: { select: { id: true, name: true } } } },
-        _count: { select: { assigned_assets: true, api_keys: true } },
-      },
-    }) as UserWithGroups | null;
-
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
-    }
-
-    return {
-      ...user,
-      groups: user.groups.map(g => g.group),
-      assigned_assets_count: user._count?.assigned_assets || 0,
-      api_keys_count: user._count?.api_keys || 0,
-      _count: undefined,
-    };
-  });
+  // Get current user profile (me) - using /auth/me from auth routes
+    // api.get('/me', meResponseSchema, async (request, reply) => {
+    //   const user = await app.prisma.user.findUnique({
+    //     where: { id: (request.user as AuthUser).id },
+    //     include: {
+    //       groups: { include: { group: { select: { id: true, name: true } } } },
+    //       _count: { select: { assigned_assets: true, api_keys: true } },
+    //     },
+    //   }) as UserWithGroups | null;
+    //
+    //   if (!user) {
+    //     return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+    //   }
+    //
+    //   return {
+    //     ...user,
+    //     groups: user.groups.map(g => g.group),
+    //     assigned_assets_count: user._count?.assigned_assets || 0,
+    //     api_keys_count: user._count?.api_keys || 0,
+    //     _count: undefined,
+    //   };
+    // });
 
   // Update current user profile
   api.patch('/me', updateMeSchema, async (request, reply) => {

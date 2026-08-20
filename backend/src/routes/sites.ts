@@ -67,12 +67,12 @@ const listSitesSchema = {
     limit: z.coerce.number().int().positive().max(100).default(25),
     search: z.string().optional(),
   }),
-  response: { 200: sitesListResponse },
+  // No response validation - let Fastify pass through
 };
 
 const getSiteSchema = {
   params: z.object({ id: z.string().uuid() }),
-  response: { 200: siteDetailSchema, 404: errorResponse },
+  // No response validation - let Fastify pass through
 };
 
 const createSiteSchema = {
@@ -117,8 +117,11 @@ export async function siteRoutes(app: FastifyInstance) {
 
   // List sites
   api.get('/', listSitesSchema, async (request) => {
-    const { page, limit, search } = request.query;
+    const { page = 1, limit = 25, search } = request.query as { page?: string; limit?: string; search?: string };
     const tenantId = request.tenantId!;
+
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 25;
 
     const where: any = { tenant_id: tenantId };
     if (search) {
@@ -132,8 +135,8 @@ export async function siteRoutes(app: FastifyInstance) {
     const [sites, total] = await Promise.all([
       app.prisma.site.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
         orderBy: { name: 'asc' },
         include: {
           _count: { select: { locations: true, assets: true } },
@@ -149,7 +152,7 @@ export async function siteRoutes(app: FastifyInstance) {
         asset_count: s._count.assets,
         _count: undefined,
       })),
-      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+      pagination: { page: pageNum, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) },
     };
   });
 

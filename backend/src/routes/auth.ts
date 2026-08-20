@@ -5,34 +5,141 @@ import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { hashPassword, verifyPassword } from '../plugins/auth.js';
 
-const loginResponse = z.object({
-  user: z.object({
-    id: z.string(),
-    email: z.string(),
-    firstName: z.string(),
-    lastName: z.string(),
-    role: z.string(),
-    tenantId: z.string(),
-  }),
-  accessToken: z.string(),
-  refreshToken: z.string(),
+// JWT keys for token signing
+const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
+const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');
+
+// ============================================
+// Zod Schemas for validation (input only)
+// ============================================
+
+const loginInput = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  rememberMe: z.boolean().optional(),
 });
 
-const errorResponse = z.object({
-  error: z.string(),
-  code: z.string(),
+const forgotPasswordInput = z.object({
+  email: z.string().email(),
 });
 
-const messageResponse = z.object({ message: z.string() });
+const resetPasswordInput = z.object({
+  token: z.string(),
+  password: z.string().min(12),
+});
+
+const changePasswordInput = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(12),
+});
+
+const registerInput = z.object({
+  email: z.string().email(),
+  password: z.string().min(12),
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  tenantName: z.string().min(1).max(100).optional(),
+});
+
+const mfaSetupResponse = z.object({
+  secret: z.string(),
+  qrCode: z.string(),
+  backupCodes: z.array(z.string()),
+});
+
+const mfaVerifyInput = z.object({
+  code: z.string().length(6),
+});
+
+const updateProfileInput = z.object({
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  timezone: z.string().optional(),
+  language: z.string().optional(),
+});
+
+const avatarUploadInput = z.object({
+  avatarBase64: z.string(),
+});
+
+const errorResponse = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    code: { type: 'string' },
+  },
+  required: ['error', 'code'],
+};
+
+const messageResponse = {
+  type: 'object',
+  properties: {
+    message: { type: 'string' },
+  },
+  required: ['message'],
+};
+
+const userResponse = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    email: { type: 'string' },
+    firstName: { type: 'string' },
+    lastName: { type: 'string' },
+    role: { type: 'string' },
+    tenantId: { type: 'string' },
+    mfaEnabled: { type: 'boolean' },
+    avatarUrl: { type: 'string', nullable: true },
+    timezone: { type: 'string' },
+    createdAt: { type: 'string' },
+  },
+  required: ['id', 'email', 'firstName', 'lastName', 'role', 'tenantId', 'mfaEnabled', 'avatarUrl', 'timezone', 'createdAt'],
+};
+
+const loginResponse = {
+  type: 'object',
+  properties: {
+    user: userResponse,
+    accessToken: { type: 'string' },
+    refreshToken: { type: 'string' },
+  },
+  required: ['user', 'accessToken', 'refreshToken'],
+};
+
+const meResponse = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    email: { type: 'string' },
+    firstName: { type: 'string' },
+    lastName: { type: 'string' },
+    role: { type: 'string' },
+    tenantId: { type: 'string' },
+    mfaEnabled: { type: 'boolean' },
+    avatarUrl: { type: 'string', nullable: true },
+    timezone: { type: 'string' },
+  },
+  required: ['id', 'email', 'firstName', 'lastName', 'role', 'tenantId', 'mfaEnabled', 'avatarUrl', 'timezone'],
+};
+
+// ============================================
+// Route Schemas (inline JSON Schema for Fastify compatibility)
+// ============================================
 
 const loginSchema = {
-  body: z.object({
-    email: z.string().email(),
-    password: z.string().min(1),
-    rememberMe: z.boolean().optional(),
-  }),
+  body: {
+    type: 'object',
+    properties: {
+      email: { type: 'string' },
+      password: { type: 'string', minLength: 1 },
+      rememberMe: { type: 'boolean' },
+    },
+    required: ['email', 'password'],
+  },
   response: {
     200: loginResponse,
     401: errorResponse,
@@ -40,9 +147,13 @@ const loginSchema = {
 };
 
 const forgotPasswordSchema = {
-  body: z.object({
-    email: z.string().email(),
-  }),
+  body: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', format: 'email' },
+    },
+    required: ['email'],
+  },
   response: {
     200: messageResponse,
     404: errorResponse,
@@ -50,110 +161,151 @@ const forgotPasswordSchema = {
 };
 
 const resetPasswordSchema = {
-  body: z.object({
-    token: z.string(),
-    password: z.string().min(12),
-  }),
+  body: {
+    type: 'object',
+    properties: {
+      token: { type: 'string' },
+      password: { type: 'string', minLength: 12 },
+    },
+    required: ['token', 'password'],
+  },
   response: {
     200: messageResponse,
+    400: errorResponse,
+  },
+};
+
+const changePasswordSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      currentPassword: { type: 'string', minLength: 1 },
+      newPassword: { type: 'string', minLength: 12 },
+    },
+    required: ['currentPassword', 'newPassword'],
+  },
+  response: {
+    200: messageResponse,
+    400: errorResponse,
+    401: errorResponse,
+  },
+};
+
+const registerSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      email: { type: 'string' },
+      password: { type: 'string', minLength: 12 },
+      firstName: { type: 'string', minLength: 1, maxLength: 50 },
+      lastName: { type: 'string', minLength: 1, maxLength: 50 },
+      tenantName: { type: 'string', minLength: 1, maxLength: 100 },
+    },
+    required: ['email', 'password', 'firstName', 'lastName'],
+  },
+  response: {
+    201: loginResponse,
+    400: errorResponse,
+    409: errorResponse,
+  },
+};
+
+const mfaSetupSchema = {
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        secret: { type: 'string' },
+        qrCode: { type: 'string' },
+        backupCodes: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['secret', 'qrCode', 'backupCodes'],
+    },
     400: errorResponse,
   },
 };
 
 const mfaVerifySchema = {
-  body: z.object({
-    token: z.string().length(6),
-  }),
+  body: {
+    type: 'object',
+    properties: {
+      code: { type: 'string', minLength: 6, maxLength: 6 },
+    },
+    required: ['code'],
+  },
   response: {
-    200: z.object({ message: z.string(), backupCodes: z.array(z.string()) }),
+    200: messageResponse,
     400: errorResponse,
   },
 };
 
 const mfaDisableSchema = {
-  body: z.object({
-    password: z.string(),
-  }),
+  body: {
+    type: 'object',
+    properties: {
+      code: { type: 'string', minLength: 6, maxLength: 6 },
+    },
+    required: ['code'],
+  },
   response: {
     200: messageResponse,
     400: errorResponse,
-    401: errorResponse,
   },
 };
 
-const mfaChallengeSchema = {
-  body: z.object({
-    email: z.string().email(),
-    token: z.string().length(6),
-  }),
+const updateProfileSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      firstName: { type: 'string', minLength: 1, maxLength: 50 },
+      lastName: { type: 'string', minLength: 1, maxLength: 50 },
+      timezone: { type: 'string' },
+      language: { type: 'string' },
+    },
+  },
   response: {
-    200: z.object({ accessToken: z.string(), refreshToken: z.string() }),
+    200: userResponse,
     400: errorResponse,
-    401: errorResponse,
   },
 };
 
-const meResponse = z.object({
-  id: z.string(),
-  email: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-  role: z.string(),
-  tenantId: z.string(),
-  mfaEnabled: z.boolean(),
-  avatarUrl: z.string().nullable(),
-  timezone: z.string(),
-  language: z.string(),
-});
+const avatarUploadSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      avatarBase64: { type: 'string' },
+    },
+    required: ['avatarBase64'],
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        avatarUrl: { type: 'string' },
+      },
+      required: ['avatarUrl'],
+    },
+    400: errorResponse,
+  },
+};
 
 interface AuthUser {
   id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
+  tenantId: string;
   role: string;
-  tenant_id: string;
-  password_hash: string | null;
-  mfa_enabled: boolean;
-  mfa_secret: string | null;
-  backup_codes: string[];
-  avatar_url: string | null;
-  timezone: string;
-  language: string;
-  status: string;
+  email: string;
 }
 
-function base32Encode(bytes: Buffer): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let result = '';
-  let bits = 0;
-  let value = 0;
-  
-  for (const byte of bytes) {
-    value = (value << 8) | byte;
-    bits += 8;
-    while (bits >= 5) {
-      bits -= 5;
-      result += alphabet[(value >> bits) & 31];
-    }
-  }
-  if (bits > 0) {
-    result += alphabet[(value << (5 - bits)) & 31];
-  }
-  return result;
+function generateTotpSecret(): string {
+  const secret = crypto.randomBytes(10).toString('base32');
+  return secret.replace(/=/g, '');
 }
 
-function generateTOTPSecret(): string {
-  return base32Encode(crypto.randomBytes(20));
-}
-
-function verifyTOTP(secret: string, token: string): boolean {
-  const crypto = await import('crypto');
-  // Simple TOTP verification using crypto
+function verifyTotp(secret: string, token: string): boolean {
   const timeStep = Math.floor(Date.now() / 30000);
   const counter = Buffer.alloc(8);
   counter.writeBigUInt64BE(BigInt(timeStep));
-  
+
   const key = Buffer.from(secret, 'base32');
   const hmac = crypto.createHmac('sha1', key).update(counter).digest();
   const offset = hmac[hmac.length - 1] & 0xf;
@@ -162,44 +314,47 @@ function verifyTOTP(secret: string, token: string): boolean {
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  const api = app.withTypeProvider<ZodTypeProvider>();
+  // Use the app directly (it already has the prefix from app.register())
+  // Don't create a new api instance - just add routes to app
 
   // Login
-  api.post('/login', loginSchema, async (request, reply) => {
+  app.post('/login', { schema: loginSchema }, async (request, reply) => {
     const { email, password, rememberMe } = request.body as { email: string; password: string; rememberMe?: boolean };
 
-    const user = await app.prisma.user.findUnique({
+    // First find user by email to get tenant_id
+    const userWithTenant = await app.prisma.user.findFirst({
       where: { email },
       include: { tenant: true },
     }) as AuthUser | null;
 
-    if (!user || !user.password_hash) {
+    if (!userWithTenant || !userWithTenant.password_hash) {
       return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (userWithTenant.status !== 'ACTIVE') {
       return reply.status(403).send({ error: 'Account is not active', code: 'ACCOUNT_INACTIVE' });
     }
 
-    const valid = await verifyPassword(password, user.password_hash);
+    const valid = await verifyPassword(password, userWithTenant.password_hash);
     if (!valid) {
       return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
     // Generate tokens
+    // Use the default JWT instance with explicit key options
     const accessToken = app.jwt.sign(
-      { userId: user.id, tenantId: user.tenant_id, role: user.role },
-      { expiresIn: '15m' }
+      { userId: userWithTenant.id, tenantId: userWithTenant.tenant_id, role: userWithTenant.role },
+      { expiresIn: '15m', key: PRIVATE_KEY }
     );
 
     const refreshToken = app.jwt.sign(
-      { userId: user.id },
-      { expiresIn: rememberMe ? '30d' : '7d' }
+      { userId: userWithTenant.id },
+      { expiresIn: rememberMe ? '30d' : '7d', key: REFRESH_PRIVATE_KEY }
     );
 
     // Update last login
     await app.prisma.user.update({
-      where: { id: user.id },
+      where: { id: userWithTenant.id },
       data: { last_login_at: new Date() },
     });
 
@@ -210,14 +365,14 @@ export async function authRoutes(app: FastifyInstance) {
     reply
       .setCookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: accessMaxAge,
         path: '/',
       })
       .setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: refreshMaxAge,
         path: '/',
@@ -225,31 +380,305 @@ export async function authRoutes(app: FastifyInstance) {
 
     return {
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        tenantId: user.tenant_id,
+        id: userWithTenant.id,
+        email: userWithTenant.email,
+        firstName: userWithTenant.first_name,
+        lastName: userWithTenant.last_name,
+        role: userWithTenant.role,
+        tenantId: userWithTenant.tenant_id,
+        mfaEnabled: userWithTenant.mfa_enabled,
+        avatarUrl: userWithTenant.avatar_url,
+        timezone: userWithTenant.timezone,
+        createdAt: userWithTenant.created_at.toISOString(),
       },
       accessToken,
       refreshToken,
     };
   });
 
+  // Forgot password
+  app.post('/forgot-password', { schema: forgotPasswordSchema }, async (request, reply) => {
+    const { email } = request.body as { email: string };
+
+    const user = await app.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return { message: 'If the email exists, a reset link will be sent' };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        reset_token: resetToken,
+        reset_token_expiry: resetTokenExpiry,
+      },
+    });
+
+    // TODO: Send email with reset link
+    console.log(`Password reset token for ${email}: ${resetToken}`);
+
+    return { message: 'If the email exists, a reset link will be sent' };
+  });
+
+  // Reset password
+  app.post('/reset-password', { schema: resetPasswordSchema }, async (request, reply) => {
+    const { token, password } = request.body as { token: string; password: string };
+
+    const user = await app.prisma.user.findFirst({
+      where: {
+        reset_token: token,
+        reset_token_expiry: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return reply.status(400).send({ error: 'Invalid or expired reset token', code: 'INVALID_RESET_TOKEN' });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password_hash: passwordHash,
+        reset_token: null,
+        reset_token_expiry: null,
+        password_changed_at: new Date(),
+      },
+    });
+
+    return { message: 'Password reset successful' };
+  });
+
+  // Register
+  app.post('/register', { schema: registerSchema }, async (request, reply) => {
+    const { email, password, firstName, lastName, tenantName } = request.body as {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      tenantName?: string;
+    };
+
+    // Check if user with this email already exists in any tenant
+    const existing = await app.prisma.user.findFirst({ where: { email } });
+    if (existing) {
+      return reply.status(409).send({ error: 'Email already registered', code: 'EMAIL_EXISTS' });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const tenant = await app.prisma.tenant.create({
+      data: {
+        name: tenantName || `${firstName}'s Organization`,
+        slug: crypto.randomBytes(8).toString('hex'),
+        plan: 'FREE',
+        max_assets: 1000,
+        max_users: 50,
+        max_storage_gb: 10,
+      },
+    });
+
+    const user = await app.prisma.user.create({
+      data: {
+        email,
+        password_hash: passwordHash,
+        first_name: firstName,
+        last_name: lastName,
+        role: 'TENANT_ADMIN',
+        tenant_id: tenant.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    const accessToken = app.jwt.sign(
+      { userId: user.id, tenantId: tenant.id, role: user.role },
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = app.jwt.sign(
+      { userId: user.id },
+      { expiresIn: '7d' }
+    );
+
+    reply
+      .setCookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 15 * 60,
+        path: '/',
+      })
+      .setCookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+
+    return reply.status(201).send({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        tenantId: tenant.id,
+        mfaEnabled: false,
+        avatarUrl: null,
+        timezone: 'UTC',
+        createdAt: user.created_at.toISOString(),
+      },
+      accessToken,
+      refreshToken,
+    });
+  });
+
+  // MFA Setup
+  app.post('/mfa/setup', { schema: mfaSetupSchema }, async (request, reply) => {
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    const fullUser = await app.prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!fullUser) {
+      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+    }
+
+    if (fullUser.mfa_enabled) {
+      return reply.status(400).send({ error: 'MFA already enabled', code: 'MFA_ALREADY_ENABLED' });
+    }
+
+    const secret = generateTotpSecret();
+    const otpauth = `otpauth://totp/AssetMT:${user.email}?secret=${secret}&issuer=AssetMT`;
+
+    const qrCode = await import('qrcode').then(m => m.default.toDataURL(otpauth));
+
+    const backupCodes = Array.from({ length: 10 }, () =>
+      crypto.randomBytes(4).toString('hex').toUpperCase()
+    );
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mfa_secret: secret,
+        mfa_backup_codes: backupCodes,
+      },
+    });
+
+    return { secret, qrCode, backupCodes };
+  });
+
+  // MFA Verify
+  app.post('/mfa/verify', { schema: mfaVerifySchema }, async (request, reply) => {
+    const { code } = request.body as { code: string };
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    const fullUser = await app.prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!fullUser || !fullUser.mfa_secret) {
+      return reply.status(400).send({ error: 'MFA not set up', code: 'MFA_NOT_SETUP' });
+    }
+
+    const valid = verifyTotp(fullUser.mfa_secret, code);
+
+    // Also check backup codes
+    if (!valid && fullUser.mfa_backup_codes) {
+      const idx = fullUser.mfa_backup_codes.indexOf(code.toUpperCase());
+      if (idx !== -1) {
+        // Remove used backup code
+        const newBackupCodes = fullUser.mfa_backup_codes.filter((_, i) => i !== idx);
+        await app.prisma.user.update({
+          where: { id: user.id },
+          data: { mfa_backup_codes: newBackupCodes },
+        });
+        valid = true;
+      }
+    }
+
+    if (!valid) {
+      return reply.status(400).send({ error: 'Invalid code', code: 'INVALID_MFA_CODE' });
+    }
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { mfa_enabled: true },
+    });
+
+    return { message: 'MFA enabled successfully' };
+  });
+
+  // MFA Disable
+  app.post('/mfa/disable', { schema: mfaDisableSchema }, async (request, reply) => {
+    const { code } = request.body as { code: string };
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    const fullUser = await app.prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!fullUser || !fullUser.mfa_secret) {
+      return reply.status(400).send({ error: 'MFA not enabled', code: 'MFA_NOT_ENABLED' });
+    }
+
+    const valid = verifyTotp(fullUser.mfa_secret, code);
+
+    if (!valid && fullUser.mfa_backup_codes) {
+      const idx = fullUser.mfa_backup_codes.indexOf(code.toUpperCase());
+      if (idx !== -1) {
+        valid = true;
+      }
+    }
+
+    if (!valid) {
+      return reply.status(400).send({ error: 'Invalid code', code: 'INVALID_MFA_CODE' });
+    }
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mfa_enabled: false,
+        mfa_secret: null,
+        mfa_backup_codes: [],
+      },
+    });
+
+    return { message: 'MFA disabled successfully' };
+  });
+
   // Refresh token
-  api.post('/refresh', async (request, reply) => {
+  app.post('/refresh', async (request, reply) => {
     const refreshToken = request.cookies?.refreshToken;
+
     if (!refreshToken) {
-      return reply.status(401).send({ error: 'Refresh token required', code: 'NO_REFRESH_TOKEN' });
+      return reply.status(401).send({ error: 'No refresh token', code: 'NO_REFRESH_TOKEN' });
     }
 
     try {
-      const decoded = await request.jwtVerify<{ userId: string }>(refreshToken);
+      const decoded = await request.jwtVerify<{ userId: string }>({ namespace: 'refresh' });
       const user = await app.prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, tenant_id: true, role: true, email: true, status: true },
-      }) as AuthUser | null;
+        include: { tenant: true },
+      });
 
       if (!user || user.status !== 'ACTIVE') {
         return reply.status(401).send({ error: 'User not found or inactive', code: 'USER_INACTIVE' });
@@ -262,34 +691,63 @@ export async function authRoutes(app: FastifyInstance) {
 
       const newRefreshToken = app.jwt.sign(
         { userId: user.id },
-        { expiresIn: '7d' }
+        { expiresIn: '7d', namespace: 'refresh' }
       );
 
       reply
-        .setCookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 15 * 60, path: '/' })
-        .setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60, path: '/' });
+        .setCookie('accessToken', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 15 * 60,
+          path: '/',
+        })
+        .setCookie('refreshToken', newRefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        });
 
-      return { accessToken, refreshToken };
-    } catch {
-      reply.clearCookie('accessToken', { path: '/' });
-      reply.clearCookie('refreshToken', { path: '/' });
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          tenantId: user.tenant_id,
+          mfaEnabled: user.mfa_enabled,
+          avatarUrl: user.avatar_url,
+          timezone: user.timezone,
+          createdAt: user.created_at.toISOString(),
+        },
+        accessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (err) {
       return reply.status(401).send({ error: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
     }
   });
 
   // Logout
-  api.post('/logout', async (request, reply) => {
-    reply.clearCookie('accessToken', { path: '/' });
-    reply.clearCookie('refreshToken', { path: '/' });
-    return { message: 'Logged out' };
+  app.post('/logout', async (request, reply) => {
+    reply
+      .clearCookie('accessToken', { path: '/' })
+      .clearCookie('refreshToken', { path: '/' });
+    return { message: 'Logged out successfully' };
   });
 
-  // Me
-  api.get('/me', {
-    schema: { response: { 200: meResponse, 404: errorResponse } },
-  }, async (request, reply) => {
-    const user = await app.prisma.user.findUnique({
-      where: { id: (request.user as AuthUser).id },
+  // Get current user
+  app.get('/me', { schema: { response: { 200: meResponse, 404: errorResponse } } }, async (request, reply) => {
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    const fullUser = await app.prisma.user.findUnique({
+      where: { id: user.id },
       select: {
         id: true,
         email: true,
@@ -300,218 +758,171 @@ export async function authRoutes(app: FastifyInstance) {
         mfa_enabled: true,
         avatar_url: true,
         timezone: true,
-        language: true,
       },
     });
 
-    if (!user) {
+    if (!fullUser) {
       return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     return {
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      tenantId: user.tenant_id,
-      mfaEnabled: user.mfa_enabled,
-      avatarUrl: user.avatar_url,
-      timezone: user.timezone,
-      language: user.language,
+      id: fullUser.id,
+      email: fullUser.email,
+      firstName: fullUser.first_name,
+      lastName: fullUser.last_name,
+      role: fullUser.role,
+      tenantId: fullUser.tenant_id,
+      mfaEnabled: fullUser.mfa_enabled,
+      avatarUrl: fullUser.avatar_url,
+      timezone: fullUser.timezone,
     };
   });
 
-  // Forgot password
-  api.post('/forgot-password', forgotPasswordSchema, async (request, reply) => {
-    const { email } = request.body as { email: string };
-    const user = await app.prisma.user.findUnique({
-      where: { email },
-    }) as AuthUser | null;
-
+  // Update profile
+  app.patch('/me', { schema: updateProfileSchema }, async (request, reply) => {
+    const user = request.user as AuthUser | undefined;
     if (!user) {
-      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
     }
 
-    // Generate reset token (in production, send via email)
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = await hashPassword(resetToken);
-
-    await app.prisma.user.update({
+    const updated = await app.prisma.user.update({
       where: { id: user.id },
-      data: {
-        mfa_secret: resetTokenHash, // Reuse field for password reset token
-        updated_at: new Date(),
-      },
+      data: request.body,
     });
-
-    // TODO: Send email with reset link
-    // For now, return token in response (dev only)
-    return { message: 'Password reset initiated', resetToken };
-  });
-
-  // Reset password
-  api.post('/reset-password', resetPasswordSchema, async (request, reply) => {
-    const { token, password } = request.body as { token: string; password: string };
-    const tokenHash = await hashPassword(token);
-
-    const user = await app.prisma.user.findFirst({
-      where: { mfa_secret: tokenHash },
-    }) as AuthUser | null;
-
-    if (!user) {
-      return reply.status(400).send({ error: 'Invalid or expired reset token', code: 'INVALID_RESET_TOKEN' });
-    }
-
-    const newPasswordHash = await hashPassword(password);
-
-    await app.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password_hash: newPasswordHash,
-        mfa_secret: null, // Clear reset token
-        updated_at: new Date(),
-      },
-    });
-
-    return { message: 'Password reset successful' };
-  });
-
-  // MFA setup
-  api.post('/mfa/setup', async (request, reply) => {
-    const user = await app.prisma.user.findUnique({
-      where: { id: (request.user as AuthUser).id },
-    }) as AuthUser | null;
-
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
-    }
-
-    if (user.mfa_enabled) {
-      return reply.status(400).send({ error: 'MFA already enabled', code: 'MFA_ALREADY_ENABLED' });
-    }
-
-    // Generate TOTP secret
-    const secret = generateTOTPSecret();
-    const otpauth = `otpauth://totp/AssetMT:${user.email}?secret=${secret}&issuer=AssetMT`;
-
-    // Store secret temporarily (not enabled yet)
-    await app.prisma.user.update({
-      where: { id: user.id },
-      data: { mfa_secret: secret },
-    });
-
-    // Generate backup codes
-    const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
 
     return {
-      secret,
-      otpauth,
-      backupCodes,
+      id: updated.id,
+      email: updated.email,
+      firstName: updated.first_name,
+      lastName: updated.last_name,
+      role: updated.role,
+      tenantId: updated.tenant_id,
+      mfaEnabled: updated.mfa_enabled,
+      avatarUrl: updated.avatar_url,
+      timezone: updated.timezone,
+      createdAt: updated.created_at.toISOString(),
     };
   });
 
-  // MFA verify (enable)
-  api.post('/mfa/verify', mfaVerifySchema, async (request, reply) => {
-    const user = await app.prisma.user.findUnique({
-      where: { id: (request.user as AuthUser).id },
-    }) as AuthUser | null;
-
-    if (!user || !user.mfa_secret) {
-      return reply.status(400).send({ error: 'MFA setup not initiated', code: 'MFA_NOT_INITIATED' });
+  // Change password
+  app.post('/change-password', { schema: changePasswordSchema }, async (request, reply) => {
+    const { currentPassword, newPassword } = request.body as { currentPassword: string; newPassword: string };
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
     }
 
-    // Verify TOTP token
-    const { token } = request.body as { token: string };
-    const verified = verifyTOTP(user.mfa_secret, token);
-
-    if (!verified) {
-      return reply.status(400).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
-    }
-
-    // Generate new backup codes
-    const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
-
-    await app.prisma.user.update({
+    const fullUser = await app.prisma.user.findUnique({
       where: { id: user.id },
-      data: {
-        mfa_enabled: true,
-        backup_codes: backupCodes,
-        updated_at: new Date(),
-      },
     });
 
-    return { message: 'MFA enabled successfully', backupCodes };
-  });
-
-  // MFA disable
-  api.post('/mfa/disable', mfaDisableSchema, async (request, reply) => {
-    const user = await app.prisma.user.findUnique({
-      where: { id: (request.user as AuthUser).id },
-    }) as AuthUser | null;
-
-    if (!user || !user.password_hash) {
+    if (!fullUser || !fullUser.password_hash) {
       return reply.status(401).send({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
-    const { password } = request.body as { password: string };
-    const valid = await verifyPassword(password, user.password_hash);
+    const valid = await verifyPassword(currentPassword, fullUser.password_hash);
     if (!valid) {
-      return reply.status(401).send({ error: 'Invalid password', code: 'INVALID_PASSWORD' });
+      return reply.status(401).send({ error: 'Current password is incorrect', code: 'INVALID_CURRENT_PASSWORD' });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password_hash: passwordHash,
+        password_changed_at: new Date(),
+      },
+    });
+
+    return { message: 'Password changed successfully' };
+  });
+
+  // Upload avatar
+  app.post('/me/avatar', { schema: avatarUploadSchema }, async (request, reply) => {
+    const { avatarBase64 } = request.body as { avatarBase64: string };
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+    }
+
+    // TODO: Upload to storage
+    const avatarUrl = `/uploads/avatars/${user.id}.png`;
+
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { avatar_url: avatarUrl },
+    });
+
+    return { avatarUrl };
+  });
+
+  // Verify email
+  app.get('/verify-email', { 
+    schema: { 
+      querystring: {
+        type: 'object',
+        properties: {
+          token: { type: 'string' }
+        },
+        required: ['token']
+      },
+      response: { 200: messageResponse, 400: errorResponse } 
+    } 
+  }, async (request, reply) => {
+    const { token } = request.query as { token: string };
+
+    const user = await app.prisma.user.findFirst({
+      where: { email_verification_token: token },
+    });
+
+    if (!user) {
+      return reply.status(400).send({ error: 'Invalid verification token', code: 'INVALID_VERIFICATION_TOKEN' });
     }
 
     await app.prisma.user.update({
       where: { id: user.id },
       data: {
-        mfa_enabled: false,
-        mfa_secret: null,
-        backup_codes: [],
-        updated_at: new Date(),
+        email_verified: true,
+        email_verification_token: null,
       },
     });
 
-    return { message: 'MFA disabled successfully' };
+    return { message: 'Email verified successfully' };
   });
 
-  // Verify MFA token (for login)
-  api.post('/mfa/challenge', mfaChallengeSchema, async (request, reply) => {
-    const { email, token } = request.body as { email: string; token: string };
-
-    const user = await app.prisma.user.findUnique({
-      where: { email },
-      include: { tenant: true },
-    }) as AuthUser | null;
-
-    if (!user || !user.mfa_enabled || !user.mfa_secret) {
-      return reply.status(401).send({ error: 'MFA not enabled for this user', code: 'MFA_NOT_ENABLED' });
+  // Resend verification
+  app.post('/resend-verification', { 
+    schema: { 
+      response: { 
+        200: messageResponse 
+      } 
+    } 
+  }, async (request, reply) => {
+    const user = request.user as AuthUser | undefined;
+    if (!user) {
+      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
     }
 
-    const verified = verifyTOTP(user.mfa_secret, token);
+    const fullUser = await app.prisma.user.findUnique({
+      where: { id: user.id },
+    });
 
-    if (!verified) {
-      return reply.status(401).send({ error: 'Invalid MFA token', code: 'INVALID_MFA_TOKEN' });
+    if (!fullUser || fullUser.email_verified) {
+      return { message: 'Email already verified' };
     }
 
-    // Generate tokens
-    const accessToken = app.jwt.sign(
-      { userId: user.id, tenantId: user.tenant_id, role: user.role },
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = app.jwt.sign(
-      { userId: user.id },
-      { expiresIn: '7d' }
-    );
+    const verificationToken = crypto.randomBytes(32).toString('hex');
 
     await app.prisma.user.update({
       where: { id: user.id },
-      data: { last_login_at: new Date() },
+      data: { email_verification_token: verificationToken },
     });
 
-    reply
-      .setCookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 15 * 60, path: '/' })
-      .setCookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60, path: '/' });
+    // TODO: Send verification email
+    console.log(`Verification token for ${fullUser.email}: ${verificationToken}`);
 
-    return { accessToken, refreshToken };
+    return { message: 'Verification email sent' };
   });
 }
+

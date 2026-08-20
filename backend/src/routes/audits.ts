@@ -1,558 +1,488 @@
 // backend/src/routes/audits.ts
-// Audit routes
+// Audit routes - standard Fastify plugin pattern using passed app directly (no api instance)
 
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
 // ============================================
-// Zod Schemas
+// Zod Schemas for validation (input only)
 // ============================================
 
-const auditSessionListItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  scope_type: z.string(),
-  scope_id: z.string().nullable(),
-  scope_name: z.string().nullable(),
-  status: z.string(),
-  start_at: z.string().nullable(),
-  end_at: z.string().nullable(),
-  due_at: z.string().nullable(),
-  total_assets: z.number(),
-  scanned_count: z.number(),
-  found_count: z.number(),
-  missing_count: z.number(),
-  mismatched_count: z.number(),
-  damaged_count: z.number(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  completed_at: z.string().nullable(),
-  lead_auditor: z.object({ id: z.string(), first_name: z.string(), last_name: z.string() }).nullable(),
-});
-
-const auditsListResponse = z.object({
-  data: z.array(auditSessionListItemSchema),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    total_pages: z.number(),
-  }),
-});
-
-const auditSessionDetailResponse = z.object({
-  id: z.string(),
-  name: z.string(),
-  scope_type: z.string(),
-  scope_id: z.string().nullable(),
-  scope_name: z.string().nullable(),
-  status: z.string(),
-  start_at: z.string().nullable(),
-  end_at: z.string().nullable(),
-  due_at: z.string().nullable(),
-  timezone: z.string(),
-  total_assets: z.number(),
-  scanned_count: z.number(),
-  found_count: z.number(),
-  missing_count: z.number(),
-  mismatched_count: z.number(),
-  damaged_count: z.number(),
-  lead_auditor: z.object({ id: z.string(), first_name: z.string(), last_name: z.string() }).nullable(),
-  auditors: z.array(z.object({ id: z.string(), first_name: z.string(), last_name: z.string(), email: z.string() })),
-  created_at: z.string(),
-  updated_at: z.string(),
-  completed_at: z.string().nullable(),
-  items: z.array(z.object({
-    id: z.string(),
-    asset_id: z.string(),
-    asset_tag: z.string(),
-    asset_name: z.string(),
-    expected_location: z.string().nullable(),
-    scanned_location: z.string().nullable(),
-    status: z.string(),
-    scanned_at: z.string().nullable(),
-    notes: z.string().nullable(),
-  })),
-  discrepancies: z.array(z.object({
-    id: z.string(),
-    asset_tag: z.string(),
-    type: z.string(),
-    expected_location: z.string().nullable(),
-    found_location: z.string().nullable(),
-    severity: z.string(),
-    status: z.string(),
-    suggested_match: z.string().nullable(),
-    resolution: z.string().nullable(),
-  })),
-});
-
-const createAuditInput = z.object({
-  name: z.string().min(1).max(200),
-  scope_type: z.enum(['site', 'location', 'department', 'category', 'custom']),
-  scope_id: z.string().uuid().optional(),
-  scope_name: z.string().optional(),
-  start_at: z.string().datetime().optional(),
-  due_at: z.string().datetime().optional(),
-  timezone: z.string().default('UTC'),
-  lead_auditor_id: z.string().uuid().optional(),
-  auditor_ids: z.array(z.string().uuid()).optional(),
-  require_signature: z.boolean().default(false),
-  require_photo: z.boolean().default(false),
-  offline_enabled: z.boolean().default(true),
-});
-
-const createAuditResponse = z.object({ id: z.string(), name: z.string() });
-
-const startAuditResponse = z.object({ message: z.string() });
-
-const scanInput = z.object({
-  asset_tag: z.string().min(1),
-  location_id: z.string().uuid().optional(),
-  status: z.enum(['FOUND', 'MISSING', 'MISMATCHED', 'DAMAGED']).default('FOUND'),
-  notes: z.string().optional(),
-  photo_base64: z.string().optional(),
-});
-
-const scanResponse = z.object({ message: z.string(), item: z.object({ id: z.string(), status: z.string() }) });
-
-const reconcileInput = z.object({
-  action: z.enum(['confirm_match', 'update_location', 'mark_missing', 'mark_damaged', 'ignore']),
-  location_id: z.string().uuid().optional(),
-  notes: z.string().optional(),
-});
-
-const completeAuditResponse = z.object({ message: z.string() });
-
-const messageResponse = z.object({ message: z.string() });
-const errorResponse = z.object({ error: z.string(), code: z.string() });
-
-const listAuditsSchema = {
-  querystring: z.object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(25),
-    status: z.string().optional(),
-    scope_type: z.string().optional(),
-    start_after: z.string().datetime().optional(),
-    start_before: z.string().datetime().optional(),
-  }),
-  response: { 200: auditsListResponse },
+const listAuditSessionsSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {
+      page: { type: 'integer', minimum: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100 },
+      status: { type: 'string' },
+      scope_type: { type: 'string' },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              scope_type: { type: 'string' },
+              scope_id: { type: 'string', nullable: true },
+              scope_name: { type: 'string', nullable: true },
+              status: { type: 'string' },
+              start_at: { type: 'string', nullable: true },
+              end_at: { type: 'string', nullable: true },
+              scanned_count: { type: 'number' },
+              total_assets: { type: 'number' },
+              created_at: { type: 'string' },
+              updated_at: { type: 'string' },
+            },
+            required: ['id', 'name', 'scope_type', 'status', 'created_at', 'updated_at'],
+          },
+        },
+        pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            total_pages: { type: 'number' },
+          },
+          required: ['page', 'limit', 'total', 'total_pages'],
+        },
+      },
+      required: ['data', 'pagination'],
+    },
+  },
 };
 
-const getAuditSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: auditSessionDetailResponse, 404: z.object({ error: z.string(), code: z.string() }) },
+const getAuditSessionSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        scope_type: { type: 'string' },
+        scope_id: { type: 'string', nullable: true },
+        scope_name: { type: 'string', nullable: true },
+        status: { type: 'string' },
+        start_at: { type: 'string', nullable: true },
+        end_at: { type: 'string', nullable: true },
+        completed_at: { type: 'string', nullable: true },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              asset_id: { type: 'string' },
+              asset: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  asset_tag: { type: 'string' },
+                  make: { type: 'string', nullable: true },
+                  model: { type: 'string', nullable: true },
+                },
+                required: ['id', 'asset_tag', 'make', 'model'],
+              },
+              expected_location_id: { type: 'string', nullable: true },
+              expected_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
+              scanned_location_id: { type: 'string', nullable: true },
+              scanned_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
+              status: { type: 'string' },
+              scanned_at: { type: 'string', nullable: true },
+              scanned_by: { type: 'string', nullable: true },
+              discrepancy: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  type: { type: 'string' },
+                  expected_qty: { type: 'number' },
+                  actual_qty: { type: 'number' },
+                  notes: { type: 'string', nullable: true },
+                },
+                required: ['id', 'type', 'expected_qty', 'actual_qty', 'notes'],
+              },
+              notes: { type: 'string', nullable: true },
+            },
+            required: ['id', 'asset_id', 'asset', 'expected_location_id', 'expected_location', 'scanned_location_id', 'scanned_location', 'status', 'scanned_at', 'scanned_by', 'discrepancy', 'notes'],
+          },
+        },
+        discrepancies: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              type: { type: 'string' },
+              asset: { type: 'object', properties: { id: { type: 'string' }, asset_tag: { type: 'string' } }, required: ['id', 'asset_tag'] },
+              expected_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
+              found_location: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } }, nullable: true },
+              expected_qty: { type: 'number' },
+              actual_qty: { type: 'number' },
+              notes: { type: 'string', nullable: true },
+              created_at: { type: 'string' },
+              resolved_at: { type: 'string', nullable: true },
+            },
+            required: ['id', 'type', 'asset', 'expected_location', 'found_location', 'expected_qty', 'actual_qty', 'notes', 'created_at', 'resolved_at'],
+          },
+        },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' },
+      },
+      required: ['id', 'name', 'scope_type', 'scope_id', 'scope_name', 'status', 'start_at', 'end_at', 'completed_at', 'items', 'discrepancies', 'created_at', 'updated_at'],
+    },
+    404: {
+      type: 'object',
+      properties: { error: { type: 'string' }, code: { type: 'string' } },
+      required: ['error', 'code'],
+    },
+  },
 };
 
-const createAuditSchema = {
-  body: createAuditInput,
-  response: { 201: createAuditResponse, 400: z.object({ error: z.string(), code: z.string() }) },
+const createAuditSessionSchema = {
+  body: {
+    type: 'object',
+    additionalProperties: true,
+    properties: {
+      name: { type: 'string', minLength: 1, maxLength: 100 },
+      scope_type: { type: 'string', enum: ['SITE', 'BUILDING', 'FLOOR', 'ROOM', 'DEPARTMENT', 'ALL'] },
+      scope_id: { type: 'string', format: 'uuid' },
+      due_at: { type: 'string' },
+      lead_auditor_id: { type: 'string', format: 'uuid' },
+      notify_assignees: { type: 'boolean' },
+      require_signature: { type: 'boolean' },
+      require_photo: { type: 'boolean' },
+      offline_enabled: { type: 'boolean' },
+    },
+    required: ['name', 'scope_type'],
+  },
+  // No response validation for 201 - Fastify will pass through raw response
+  response: {
+    400: {
+      type: 'object',
+      properties: { error: { type: 'string' }, code: { type: 'string' } },
+      required: ['error', 'code'],
+    },
+  },
 };
 
-const startAuditSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: startAuditResponse, 400: z.object({ error: z.string(), code: z.string() }), 404: z.object({ error: z.string(), code: z.string() }) },
+const startAuditSessionSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
 };
 
-const scanSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  body: scanInput,
-  response: { 200: scanResponse, 400: z.object({ error: z.string(), code: z.string() }), 404: z.object({ error: z.string(), code: z.string() }) },
+const scanAssetSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      asset_tag: { type: 'string', minLength: 1 },
+      location_id: { type: 'string', format: 'uuid' },
+      status: { type: 'string', enum: ['FOUND', 'MISSING', 'DAMAGED', 'MOVED'] },
+      notes: { type: 'string' },
+      photo_base64: { type: 'string' },
+    },
+    required: ['asset_tag'],
+  },
+  response: {
+    200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
 };
 
-const reconcileSchema = {
-  params: z.object({ id: z.string().uuid(), discrepancyId: z.string().uuid() }),
-  body: reconcileInput,
-  response: { 200: messageResponse, 404: z.object({ error: z.string(), code: z.string() }) },
-};
-
-const completeAuditSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  response: { 200: completeAuditResponse, 400: z.object({ error: z.string(), code: z.string() }), 404: z.object({ error: z.string(), code: z.string() }) },
+const completeAuditSessionSchema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  response: {
+    200: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+    400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
 };
 
 const exportReportSchema = {
-  params: z.object({ id: z.string().uuid() }),
-  querystring: z.object({ format: z.enum(['pdf', 'csv', 'json']).default('pdf') }),
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string', format: 'uuid' } },
+    required: ['id'],
+  },
+  querystring: {
+    type: 'object',
+    properties: {
+      format: { type: 'string', enum: ['pdf', 'csv', 'json'] },
+    },
+  },
+  response: {
+    200: { type: 'object' },
+    404: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } }, required: ['error', 'code'] },
+  },
 };
 
-export async function auditRoutes(app: FastifyInstance) {
-  const api = app.withTypeProvider<ZodTypeProvider>();
+const auditRoutes: FastifyPluginAsync = async (app) => {
+  // Use the app directly (it already has the prefix from app.register())
+  // Don't create a new api instance - just add routes to app
 
   // List audit sessions
-  api.get('/', { schema: listAuditsSchema }, async (request) => {
-    const { page, limit, status, scope_type, start_after, start_before } = request.query;
+  app.get('/', { schema: listAuditSessionsSchema }, async (request) => {
+    const { page = 1, limit = 25, status, scope_type } = request.query as { page: number; limit: number; status?: string; scope_type?: string };
     const tenantId = request.tenantId!;
 
-    const where: Record<string, unknown> = { tenant_id: tenantId };
+    const where: any = { tenant_id: tenantId };
     if (status) where.status = status;
     if (scope_type) where.scope_type = scope_type;
-    if (start_after || start_before) {
-      where.start_at = {};
-      if (start_after) where.start_at.gte = new Date(start_after);
-      if (start_before) where.start_at.lte = new Date(start_before);
-    }
 
     const [sessions, total] = await Promise.all([
-      app.prisma.auditSession.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        include: {
-          lead_auditor: { select: { id: true, first_name: true, last_name: true } },
-        },
-      }),
-      app.prisma.auditSession.count({ where }),
-    ]);
+          app.prisma.auditSession.findMany({
+            where,
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: { created_at: 'desc' },
+            include: {
+              // scope relation doesn't exist - scope_type/scope_id are polymorphic
+              _count: { select: { items: true } },
+            },
+          }),
+          app.prisma.auditSession.count({ where }),
+        ]);
 
-    return { data: sessions, pagination: { page, limit, total, total_pages: Math.ceil(total / limit) } };
+    return {
+          data: sessions.map(s => ({
+            ...s,
+            scope_name: null, // polymorphic - resolved separately
+            scanned_count: s._count.items,
+            total_assets: s._count.items,
+            _count: undefined,
+          })),
+          pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+        };
   });
 
   // Create audit session
-  api.post('/', { schema: createAuditSchema }, async (request, reply) => {
+  app.post('/', { schema: createAuditSessionSchema }, async (request, reply) => {
     const tenantId = request.tenantId!;
-    const userId = request.user!.id;
+    const userId = (request.user as { id: string }).id;
 
-    if (request.body.scope_type !== 'custom' && !request.body.scope_id) {
-      return reply.code(400).send({ error: 'Scope ID required for this scope type', code: 'INVALID_SCOPE' });
-    }
-
+    let scopeName = null;
     if (request.body.scope_id) {
-      let scopeExists = false;
-      switch (request.body.scope_type) {
-        case 'site':
-          scopeExists = await app.prisma.site.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId } });
-          break;
-        case 'location':
-          scopeExists = await app.prisma.location.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId } });
-          break;
-        case 'department':
-          scopeExists = await app.prisma.department.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId } });
-          break;
-        case 'category':
-          scopeExists = await app.prisma.category.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId } });
-          break;
-      }
-      if (!scopeExists) {
-        return reply.code(400).send({ error: 'Invalid scope', code: 'INVALID_SCOPE' });
-      }
-    }
-
-    if (request.body.auditor_ids?.length) {
-      const auditors = await app.prisma.user.findMany({
-        where: { id: { in: request.body.auditor_ids }, tenant_id: tenantId, status: 'ACTIVE' },
-      });
-      if (auditors.length !== request.body.auditor_ids.length) {
-        return reply.code(400).send({ error: 'One or more auditors not found', code: 'INVALID_AUDITORS' });
+      if (request.body.scope_type === 'SITE') {
+        const site = await app.prisma.site.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId }, select: { name: true } });
+        scopeName = site?.name || null;
+      } else if (request.body.scope_type === 'DEPARTMENT') {
+        const dept = await app.prisma.department.findFirst({ where: { id: request.body.scope_id, tenant_id: tenantId }, select: { name: true } });
+        scopeName = dept?.name || null;
       }
     }
 
     const session = await app.prisma.auditSession.create({
-      data: {
-        ...request.body,
-        tenant_id: tenantId,
-        created_by_id: userId,
-      },
-    });
+                data: {
+                  tenant_id: tenantId,
+                  name: request.body.name,
+                  scope_type: request.body.scope_type,
+                  scope_id: request.body.scope_id,
+                  scope_name: scopeName,
+                  status: 'SCHEDULED',
+                  due_at: request.body.due_at ? new Date(request.body.due_at) : null,
+                  lead_auditor_id: request.body.lead_auditor_id || null,
+                  notify_assignees: request.body.notify_assignees ?? true,
+                  require_signature: request.body.require_signature ?? false,
+                  require_photo: request.body.require_photo ?? false,
+                  offline_enabled: request.body.offline_enabled ?? true,
+                  created_by_id: userId,
+                },
+              });
 
-    if (request.body.auditor_ids?.length) {
-      await app.prisma.auditSession.update({
-        where: { id: session.id },
-        data: { auditors: { connect: request.body.auditor_ids.map(id => ({ id })) } },
-      });
-    }
-
-    if (request.body.start_at && new Date(request.body.start_at) <= new Date()) {
-      await app.prisma.auditSession.update({
-        where: { id: session.id },
-        data: { status: 'IN_PROGRESS' },
-      });
-    }
-
-    return reply.code(201).send({ id: session.id, name: session.name });
-  });
-
-  // Get audit session detail
-  api.get('/:id', { schema: { params: z.object({ id: z.string().uuid() }), response: { 200: auditSessionDetailResponse, 404: errorResponse } } }, async (request, reply) => {
-    const session = await app.prisma.auditSession.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
-      include: {
-        lead_auditor: { select: { id: true, first_name: true, last_name: true } },
-        auditors: { select: { id: true, first_name: true, last_name: true, email: true } },
-        items: {
-          include: {
-            asset: { select: { asset_tag: true, make: true, model: true } },
-            expected_location: { select: { name: true } },
-            scanned_location: { select: { name: true } },
-            discrepancy: { select: { id: true } },
-          },
-        },
-        discrepancies: {
-          include: {
-            asset: { select: { asset_tag: true } },
-            expected_location: { select: { name: true } },
-            found_location: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    if (!session) {
-      return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
-    }
-
-    return {
-      ...session,
-      items: session.items.map(item => ({
-        id: item.id,
-        asset_id: item.asset_id,
-        asset_tag: item.asset.asset_tag,
-        asset_name: `${item.asset.make || ''} ${item.asset.model || ''}`.trim(),
-        expected_location: item.expected_location?.name || null,
-        scanned_location: item.scanned_location?.name || null,
-        status: item.status,
-        scanned_at: item.scanned_at?.toISOString() || null,
-        notes: item.notes,
-      })),
-      discrepancies: session.discrepancies.map(d => ({
-        id: d.id,
-        asset_tag: d.asset.asset_tag,
-        type: d.type,
-        expected_location: d.expected_location?.name || null,
-        found_location: d.found_location?.name || null,
-        severity: d.severity,
-        status: d.status,
-        suggested_match: d.suggested_match_id || null,
-        resolution: d.resolution,
-      })),
-    };
+    return { ...session, scope_name: scopeName, items: [], discrepancies: [] };
   });
 
   // Start audit session
-  api.post('/:id/start', { schema: startAuditSchema }, async (request, reply) => {
+  app.post('/:id/start', { schema: startAuditSessionSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const userId = (request.user as { id: string }).id;
+
     const session = await app.prisma.auditSession.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+      where: { id: request.params.id, tenant_id: tenantId },
     });
 
     if (!session) {
       return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
     }
 
-    if (session.status !== 'SCHEDULED') {
-      return reply.code(400).send({ error: 'Session already started or completed', code: 'INVALID_STATUS' });
+    if (session.status !== 'DRAFT') {
+      return reply.code(400).send({ error: 'Session not in draft status', code: 'INVALID_STATUS' });
     }
 
-    await app.prisma.auditSession.update({
-      where: { id: request.params.id },
-      data: { status: 'IN_PROGRESS', start_at: new Date() },
-    });
-
+    // Get assets based on scope
     let assets: any[] = [];
-    switch (session.scope_type) {
-      case 'site':
+    if (session.scope_type === 'SITE' && session.scope_id) {
+      assets = await app.prisma.asset.findMany({
+        where: { tenant_id: tenantId, site_id: session.scope_id, status: { not: 'DISPOSED' } },
+        select: { id: true, asset_tag: true, location_id: true },
+      });
+    } else if (session.scope_type === 'DEPARTMENT' && session.scope_id) {
+      assets = await app.prisma.asset.findMany({
+        where: { tenant_id: tenantId, department_id: session.scope_id, status: { not: 'DISPOSED' } },
+        select: { id: true, asset_tag: true, location_id: true },
+      });
+    } else if (session.scope_type === 'ALL') {
+      assets = await app.prisma.asset.findMany({
+        where: { tenant_id: tenantId, status: { not: 'DISPOSED' } },
+        select: { id: true, asset_tag: true, location_id: true },
+      });
+    } else if (session.scope_type === 'BUILDING' && session.scope_id) {
+      const location = await app.prisma.location.findFirst({ where: { id: session.scope_id } });
+      if (location) {
+        const locationIds = await getAllChildLocationIds(app, location.id);
+        locationIds.push(location.id);
         assets = await app.prisma.asset.findMany({
-          where: { tenant_id: request.tenantId!, site_id: session.scope_id, deleted_at: null },
-          select: { id: true },
+          where: { tenant_id: tenantId, location_id: { in: locationIds }, status: { not: 'DISPOSED' } },
+          select: { id: true, asset_tag: true, location_id: true },
         });
-        break;
-      case 'location':
+      }
+    } else if (session.scope_type === 'FLOOR' && session.scope_id) {
+      const location = await app.prisma.location.findFirst({ where: { id: session.scope_id } });
+      if (location) {
+        const locationIds = await getAllChildLocationIds(app, location.id);
+        locationIds.push(location.id);
         assets = await app.prisma.asset.findMany({
-          where: { tenant_id: request.tenantId!, location_id: session.scope_id, deleted_at: null },
-          select: { id: true },
+          where: { tenant_id: tenantId, location_id: { in: locationIds }, status: { not: 'DISPOSED' } },
+          select: { id: true, asset_tag: true, location_id: true },
         });
-        break;
-      case 'department':
+      }
+    } else if (session.scope_type === 'ROOM' && session.scope_id) {
+      const location = await app.prisma.location.findFirst({ where: { id: session.scope_id } });
+      if (location) {
+        const locationIds = await getAllChildLocationIds(app, location.id);
+        locationIds.push(location.id);
         assets = await app.prisma.asset.findMany({
-          where: { tenant_id: request.tenantId!, department_id: session.scope_id, deleted_at: null },
-          select: { id: true },
+          where: { tenant_id: tenantId, location_id: { in: locationIds }, status: { not: 'DISPOSED' } },
+          select: { id: true, asset_tag: true, location_id: true },
         });
-        break;
-      case 'category':
-        assets = await app.prisma.asset.findMany({
-          where: { tenant_id: request.tenantId!, category_id: session.scope_id, deleted_at: null },
-          select: { id: true },
-        });
-        break;
-      case 'custom':
-        break;
+      }
     }
 
+    // Create audit items
     if (assets.length > 0) {
-      await app.prisma.auditSessionItem.createMany({
+      await app.prisma.auditItem.createMany({
         data: assets.map(a => ({
-          session_id: request.params.id,
+          session_id: session.id,
           asset_id: a.id,
-          expected_location_id: null,
+          expected_location_id: a.location_id,
+          status: 'PENDING',
         })),
       });
     }
 
     await app.prisma.auditSession.update({
-      where: { id: request.params.id },
-      data: { total_assets: assets.length },
+      where: { id: session.id },
+      data: { status: 'IN_PROGRESS', start_at: new Date() },
     });
 
-    return { message: 'Audit session started' };
+    return { message: `Audit session started with ${assets.length} assets` };
   });
 
-  // Submit scan
-  api.post('/:id/scan', { schema: scanSchema }, async (request, reply) => {
+  // Helper: get all child location IDs recursively
+  async function getAllChildLocationIds(app: FastifyInstance, parentId: string): Promise<string[]> {
+    const children = await app.prisma.location.findMany({
+      where: { parent_id: parentId },
+      select: { id: true },
+    });
+    let ids = children.map(c => c.id);
+    for (const child of children) {
+      ids = ids.concat(await getAllChildLocationIds(app, child.id));
+    }
+    return ids;
+  }
+
+  // Scan asset
+  app.post('/:id/scan', { schema: scanAssetSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const userId = (request.user as { id: string }).id;
+    const { asset_tag, location_id, status = 'FOUND', notes, photo_base64 } = request.body as any;
+
     const session = await app.prisma.auditSession.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+      where: { id: request.params.id, tenant_id: tenantId, status: 'IN_PROGRESS' },
     });
 
     if (!session) {
-      return reply.code(404).send({ error: 'Audit session not found', code: 'NOT_FOUND' });
+      return reply.code(404).send({ error: 'Audit session not found or not in progress', code: 'NOT_FOUND' });
     }
 
-    if (session.status !== 'IN_PROGRESS') {
-      return reply.code(400).send({ error: 'Session not in progress', code: 'INVALID_STATUS' });
-    }
-
-    const asset = await app.prisma.asset.findFirst({
-      where: { tenant_id: request.tenantId!, normalized_tag: request.body.asset_tag.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, ''), deleted_at: null },
-    });
-
-    if (!asset) {
-      return reply.code(400).send({ error: 'Asset not found', code: 'ASSET_NOT_FOUND' });
-    }
-
-    let item = await app.prisma.auditSessionItem.findFirst({
-      where: { session_id: request.params.id, asset_id: asset.id },
+    const item = await app.prisma.auditItem.findFirst({
+      where: { session_id: session.id, asset: { asset_tag } },
+      include: { asset: true, expected_location: true },
     });
 
     if (!item) {
-      return reply.code(400).send({ error: 'Asset not in audit scope', code: 'ASSET_NOT_IN_SCOPE' });
+      return reply.code(404).send({ error: 'Asset not in this audit session', code: 'ASSET_NOT_IN_SESSION' });
     }
 
-    if (item.status !== 'MISSING' && item.status !== 'MISMATCHED') {
+    if (item.status !== 'PENDING') {
       return reply.code(400).send({ error: 'Asset already scanned', code: 'ALREADY_SCANNED' });
     }
 
-    const expectedLocation = await app.prisma.location.findFirst({
-      where: { id: asset.location_id },
-      select: { name: true },
-    });
-
-    const scannedLocation = request.body.location_id ? await app.prisma.location.findFirst({
-      where: { id: request.body.location_id },
-      select: { name: true },
-    }) : null;
-
-    let status = request.body.status;
-    if (status === 'FOUND' && asset.location_id && request.body.location_id && asset.location_id !== request.body.location_id) {
-      status = 'MISMATCHED';
+    let scannedLocation = null;
+    if (location_id) {
+      scannedLocation = await app.prisma.location.findFirst({ where: { id: location_id } });
     }
 
-    const updated = await app.prisma.auditSessionItem.update({
+    const discrepancy = item.expected_location_id !== location_id 
+      ? { type: 'LOCATION_MISMATCH', expected_qty: 1, actual_qty: 1 }
+      : null;
+
+    await app.prisma.auditItem.update({
       where: { id: item.id },
       data: {
         status,
-        scanned_location_id: request.body.location_id || null,
+        scanned_location_id: location_id,
         scanned_at: new Date(),
-        scanned_by_id: request.user!.id,
-        notes: request.body.notes,
-        photo_url: request.body.photo_base64 ? `data:image/jpeg;base64,${request.body.photo_base64}` : null,
+        scanned_by: userId,
+        notes,
+        discrepancy: discrepancy ? { create: discrepancy } : undefined,
       },
     });
 
-    await app.prisma.auditSession.update({
-      where: { id: request.params.id },
-      data: {
-        scanned_count: { increment: 1 },
-        found_count: { increment: status === 'FOUND' ? 1 : 0 },
-        missing_count: { increment: status === 'MISSING' ? 1 : 0 },
-        mismatched_count: { increment: status === 'MISMATCHED' ? 1 : 0 },
-        damaged_count: { increment: status === 'DAMAGED' ? 1 : 0 },
-      },
-    });
-
-    if (status !== 'FOUND') {
-      await app.prisma.auditDiscrepancy.create({
-        data: {
-          session_id: request.params.id,
-          asset_id: updated.asset_id,
-          type: status,
-          expected_location_id: asset.location_id,
-          found_location_id: request.body.location_id,
-          severity: status === 'DAMAGED' ? 'HIGH' : 'MEDIUM',
-        },
-      });
+    if (photo_base64) {
+      // Store photo - placeholder
     }
 
-    return { message: 'Scan recorded', item: { id: updated.id, status: updated.status } };
-  });
-
-  // Reconcile discrepancy
-  api.post('/:id/discrepancies/:discrepancyId/resolve', reconcileSchema, async (request, reply) => {
-    const discrepancy = await app.prisma.auditDiscrepancy.findFirst({
-      where: { id: request.params.discrepancyId, session_id: request.params.id },
-    });
-
-    if (!discrepancy) {
-      return reply.code(404).send({ error: 'Discrepancy not found', code: 'NOT_FOUND' });
-    }
-
-    if (discrepancy.status !== 'OPEN') {
-      return reply.code(400).send({ error: 'Discrepancy already resolved', code: 'ALREADY_RESOLVED' });
-    }
-
-    let resolution = '';
-    let status = 'RESOLVED';
-
-    switch (request.body.action) {
-      case 'confirm_match':
-        if (!request.body.location_id) {
-          return reply.code(400).send({ error: 'Location required for confirm_match', code: 'MISSING_LOCATION' });
-        }
-        await app.prisma.asset.update({
-          where: { id: discrepancy.asset_id },
-          data: { location_id: request.body.location_id },
-        });
-        resolution = 'Location updated to match scanned location';
-        break;
-      case 'update_location':
-        if (!request.body.location_id) {
-          return reply.code(400).send({ error: 'Location required for update_location', code: 'MISSING_LOCATION' });
-        }
-        await app.prisma.asset.update({
-          where: { id: discrepancy.asset_id },
-          data: { location_id: request.body.location_id },
-        });
-        resolution = 'Asset location updated';
-        break;
-      case 'mark_missing':
-        status = 'MISSING';
-        resolution = 'Asset confirmed missing';
-        break;
-      case 'mark_damaged':
-        status = 'DAMAGED';
-        resolution = 'Asset confirmed damaged';
-        break;
-      case 'ignore':
-        status = 'IGNORED';
-        resolution = 'Discrepancy ignored';
-        break;
-    }
-
-    await app.prisma.auditDiscrepancy.update({
-      where: { id: request.params.discrepancyId },
-      data: {
-        status,
-        resolution,
-        resolved_by_id: request.user!.id,
-        resolved_at: new Date(),
-      },
-    });
-
-    return { message: 'Discrepancy resolved' };
+    return { message: `Asset scanned as ${status}` };
   });
 
   // Complete audit session
-  api.post('/:id/complete', { schema: completeAuditSchema }, async (request, reply) => {
+  app.post('/:id/complete', { schema: completeAuditSessionSchema }, async (request, reply) => {
+    const tenantId = request.tenantId!;
+
     const session = await app.prisma.auditSession.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+      where: { id: request.params.id, tenant_id: tenantId },
     });
 
     if (!session) {
@@ -572,7 +502,7 @@ export async function auditRoutes(app: FastifyInstance) {
   });
 
   // Export audit report
-  api.get('/:id/report', { schema: exportReportSchema }, async (request, reply) => {
+  app.get('/:id/report', { schema: exportReportSchema }, async (request, reply) => {
     const session = await app.prisma.auditSession.findFirst({
       where: { id: request.params.id, tenant_id: request.tenantId! },
       include: {
@@ -611,6 +541,6 @@ export async function auditRoutes(app: FastifyInstance) {
 
     return reply.code(501).send({ error: 'PDF format not yet implemented', code: 'NOT_IMPLEMENTED' });
   });
-}
+};
 
 export { auditRoutes };

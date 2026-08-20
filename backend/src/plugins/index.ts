@@ -1,22 +1,29 @@
 // backend/src/plugins/index.ts
-// Plugin registration for Fastify
+// Plugin registration for Fastify - all plugins registered on main app for shared decorations
 
 import { FastifyInstance } from 'fastify';
 import { prismaPlugin } from './prisma.js';
 import { redisPlugin } from './redis.js';
 import { authPlugin } from './auth.js';
 import { bullmqPlugin } from './bullmq.js';
-// import { websocketPlugin } from './websocket.js'; // Disabled for Phase 1
 import { metricsPlugin } from './metrics.js';
 import { tracingPlugin } from './tracing.js';
 import { uploadPlugin } from './upload.js';
 
+export { prismaPlugin, redisPlugin, authPlugin, bullmqPlugin, metricsPlugin, tracingPlugin, uploadPlugin };
+
 export async function registerPlugins(app: FastifyInstance) {
+  // Register all plugins sequentially on main app (shared encapsulation scope)
+  // This allows all plugins and routes to access each other's decorations
+  
   // Core infrastructure
   await app.register(prismaPlugin);
   await app.register(redisPlugin);
 
-  // Auth & security
+  // Auth & security (can access prisma/redis)
+  await app.register(authPlugin);
+
+  // Security plugins
   await app.register(import('@fastify/helmet'), {
     contentSecurityPolicy: {
       directives: {
@@ -43,9 +50,6 @@ export async function registerPlugins(app: FastifyInstance) {
     keyGenerator: (req: any) => req.tenantId || req.ip,
   });
 
-  // Auth & security
-  await app.register(authPlugin);
-
   // Background jobs
   await app.register(bullmqPlugin);
 
@@ -53,12 +57,7 @@ export async function registerPlugins(app: FastifyInstance) {
   // await app.register(websocketPlugin);
 
   // File uploads
-  await app.register(import('@fastify/multipart'), {
-    limits: {
-      fileSize: 50 * 1024 * 1024, // 50MB
-      files: 10,
-    },
-  });
+  // Note: uploadPlugin registers @fastify/multipart internally
   await app.register(uploadPlugin);
 
   // Observability

@@ -1,5 +1,5 @@
 // backend/src/middleware/tenant-context.ts
-// Tenant context middleware - extracts tenant from request and sets RLS context
+// Tenant context middleware - extracts tenant from request and sets on request object
 
 import { FastifyPluginAsync, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
@@ -10,8 +10,29 @@ interface AuthUser {
   email: string;
 }
 
+const publicRoutes = [
+  '/health',
+  '/ready',
+  '/metrics',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+];
+
+function isPublicRoute(url: string): boolean {
+  return publicRoutes.some(route => url.startsWith(route));
+}
+
 export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Skip for public routes
+    if (isPublicRoute(request.url)) {
+      return;
+    }
+
     // Skip for health checks
     if (request.url === '/health' || request.url === '/ready' || request.url === '/metrics') {
       return;
@@ -44,12 +65,7 @@ export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) =>
     }
 
     if (!tenantId) {
-      // For public routes, continue without tenant
-      const publicRoutes = ['/health', '/ready', '/metrics', '/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/forgot-password', '/api/auth/reset-password'];
-      if (!request.url.startsWith('/api/auth/') && !['/health', '/ready', '/metrics'].includes(request.url)) {
-        return reply.code(401).send({ error: 'Tenant context required', code: 'NO_TENANT' });
-      }
-      return;
+      return reply.code(401).send({ error: 'Tenant context required', code: 'NO_TENANT' });
     }
 
     // Validate tenant exists and is active
@@ -65,6 +81,15 @@ export const tenantContext: FastifyPluginAsync = async (app: FastifyInstance) =>
     // Set tenant context on request
     request.tenantId = tenantId;
     request.tenant = tenant;
+    
+    // Set global tenant context for Prisma extension
+    (globalThis as any).__TENANT_CONTEXT__ = { tenantId };
+  });
+
+  // Clear tenant context after request
+  app.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply, payload: any) => {
+    delete (globalThis as any).__TENANT_CONTEXT__;
+    return payload;
   });
 };
 
