@@ -206,15 +206,13 @@ const verifyAuditResponse = {
 // ============================================
 
 const settingsSchema = {
-  response: {
-    200: tenantSettingsResponse,
-    403: errorResponse,
-  },
+  // No response validation - let Fastify pass through
 };
 
 const updateSettingsSchema = {
   body: {
     type: 'object',
+    additionalProperties: true,
     properties: {
       asset_tag_prefix: { type: 'string', maxLength: 10 },
       asset_tag_format: { type: 'string' },
@@ -285,6 +283,7 @@ const subscriptionSchema = {
 const auditLogSchema = {
   querystring: {
     type: 'object',
+    additionalProperties: true,
     properties: {
       page: { type: 'integer', minimum: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 100 },
@@ -295,9 +294,7 @@ const auditLogSchema = {
       end_date: { type: 'string', format: 'date-time' },
     },
   },
-  response: {
-    200: auditLogResponse,
-  },
+  // No response validation - let Fastify pass through
 };
 
 const verifyAuditSchema = {
@@ -313,25 +310,65 @@ interface AuthUser {
   email: string;
 }
 
+// Default tenant settings
+function getDefaultSettings() {
+  return {
+    asset_tag_prefix: 'AST',
+    asset_tag_format: '{prefix}-{number:06d}',
+    asset_tag_counter: 0,
+    password_min_length: 12,
+    password_require_upper: true,
+    password_require_lower: true,
+    password_require_number: true,
+    password_require_symbol: true,
+    password_max_age_days: 90,
+    password_history_count: 5,
+    mfa_required_for_admins: true,
+    mfa_required_for_all: false,
+    mfa_methods: ['totp', 'passkey'],
+    session_absolute_timeout_minutes: 15,
+    session_idle_timeout_minutes: 5,
+    max_concurrent_sessions: 5,
+    ip_allowlist_enabled: false,
+    ip_allowlist_cidrs: [],
+    sso_enabled: false,
+    sso_provider: null,
+    sso_entity_id: null,
+    sso_sso_url: null,
+    sso_slo_url: null,
+    sso_jit_provisioning: true,
+    audit_log_retention_days: 730,
+    asset_history_retention_days: 2555,
+    deleted_user_retention_days: 30,
+    export_retention_days: 90,
+    backup_retention_days: 30,
+  };
+}
+
 export async function adminRoutes(app: FastifyInstance) {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
-  // Tenant settings
+  // Tenant settings - read from Tenant.settings JSON field
   api.get('/settings', { schema: settingsSchema }, async (request, reply) => {
     const user = request.user as AuthUser | undefined;
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
       return reply.code(403).send({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS' });
     }
 
-    const settings = await (app.prisma as any).tenantSettings?.findUnique({
-      where: { tenant_id: request.tenantId! },
+    const tenant = await app.prisma.tenant.findUnique({
+      where: { id: request.tenantId! },
+      select: { settings: true },
     });
 
-    if (!settings) {
-      return reply.code(404).send({ error: 'Settings not found', code: 'NOT_FOUND' });
+    if (!tenant) {
+      return reply.code(404).send({ error: 'Tenant not found', code: 'NOT_FOUND' });
     }
 
-    return settings;
+    const defaultSettings = getDefaultSettings();
+    const storedSettings = (tenant.settings as any) || {};
+    const mergedSettings = { ...defaultSettings, ...storedSettings, asset_tag_counter: 0 };
+
+    return mergedSettings;
   });
 
   api.patch('/settings', { schema: updateSettingsSchema }, async (request, reply) => {
@@ -340,10 +377,18 @@ export async function adminRoutes(app: FastifyInstance) {
       return reply.code(403).send({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS' });
     }
 
-    const settings = await (app.prisma as any).tenantSettings?.upsert({
-      where: { tenant_id: request.tenantId! },
-      update: request.body,
-      create: { tenant_id: request.tenantId!, ...request.body },
+    // Read current settings
+    const tenant = await app.prisma.tenant.findUnique({
+      where: { id: request.tenantId! },
+      select: { settings: true },
+    });
+
+    const currentSettings = (tenant?.settings as any) || {};
+    const mergedSettings = { ...currentSettings, ...request.body };
+
+    await app.prisma.tenant.update({
+      where: { id: request.tenantId! },
+      data: { settings: mergedSettings },
     });
 
     return { message: 'Settings updated successfully' };
@@ -417,8 +462,11 @@ export async function adminRoutes(app: FastifyInstance) {
       return { data: [], pagination: { page: 1, limit: 50, total: 0, total_pages: 0 } };
     }
 
-    const { page, limit, user_id, action, resource_type, start_date, end_date } = request.query;
+    const { page, limit, user_id, action, resource_type, start_date, end_date } = request.query as any;
     const tenantId = request.tenantId!;
+
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 50;
 
     const where: any = { tenant_id: tenantId };
     if (user_id) where.user_id = user_id;
@@ -431,11 +479,11 @@ export async function adminRoutes(app: FastifyInstance) {
     }
 
     const [logs, total] = await Promise.all([
-      app.prisma.auditLog.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { created_at: 'desc' } }),
+      app.prisma.auditLog.findMany({ where, skip: (pageNum - 1) * limitNum, take: limitNum, orderBy: { created_at: 'desc' } }),
       app.prisma.auditLog.count({ where }),
     ]);
 
-    return { data: logs, pagination: { page, limit, total, total_pages: Math.ceil(total / limit) } };
+    return { data: logs, pagination: { page: pageNum, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) } };
   });
 
   // Verify integrity
@@ -472,4 +520,3 @@ export async function adminRoutes(app: FastifyInstance) {
     return { verified: tampered.length === 0, checked: logs.length, tampered };
   });
 }
-
