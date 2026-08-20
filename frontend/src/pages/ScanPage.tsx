@@ -121,7 +121,7 @@ export function ScanPage() {
     setScanning(true);
     
     try {
-      const result = await codeReaderRef.current!.decodeFromVideoDevice(
+      await codeReaderRef.current!.decodeFromVideoDevice(
         undefined, // auto-select camera
         videoRef.current!,
         (result: Result | null) => {
@@ -156,7 +156,7 @@ export function ScanPage() {
     }
 
     try {
-      const result = await submitScan.mutateAsync({
+      await submitScan.mutateAsync({
         id: selectedAuditId,
         data: { asset_tag: tag, status: 'FOUND' },
       });
@@ -192,6 +192,109 @@ export function ScanPage() {
     }
     return () => stopScanning();
   }, [hasPermission, selectedAuditId]);
+
+  const renderCameraView = () => (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle>Point camera at barcode/QR code</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={switchCamera} disabled={scanning}>
+              <Camera className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleTorch} disabled={scanning || !hasPermission}>
+              {torchOn ? <Flashlight className="h-4 w-4 text-amber-500" /> : <Flashlight className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0 relative">
+        {hasPermission ? (
+          <>
+            <video
+              ref={videoRef}
+              className="w-full aspect-video object-cover"
+              playsInline
+              muted
+            />
+            {/* Scanning overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className={cn(
+                'w-64 h-32 border-2 border-primary/50 rounded-lg shadow-lg',
+                scanning && 'animate-pulse border-primary'
+              )}>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs text-primary font-medium">
+                  SCAN AREA
+                </div>
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
+                  Align barcode within frame
+                </div>
+              </div>
+            </div>
+          
+            {/* Scan result overlay */}
+            {scanResult && (
+              <div className="absolute bottom-4 left-4 right-4 z-10 animate-slide-up">
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Check className="h-6 w-6 text-green-600" />
+                        <div>
+                          <p className="font-medium">Asset Found</p>
+                          <p className="text-sm text-muted-foreground font-mono">{scanResult}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={clearResult}>
+                          <X className="h-4 w-4" />
+                          Scan Again
+                        </Button>
+                        <Button size="sm" onClick={viewAsset}>
+                          View Asset
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
+            {/* Scan button */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <Button
+                size="lg"
+                onClick={scanning ? stopScanning : startScanning}
+                disabled={!selectedAuditId}
+                className="w-48"
+              >
+                {scanning ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Stop Scanning
+                  </>
+                ) : (
+                  <>
+                    <ScanBarcode className="h-5 w-5 mr-2" />
+                    {selectedAuditId ? 'Start Scanning' : 'Select Audit First'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
+            <Camera className="h-16 w-16 mb-4 opacity-50" />
+            <p className="text-lg font-medium">Camera access required</p>
+            <p className="text-sm">Please enable camera permissions to scan</p>
+            <Button className="mt-4" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -261,110 +364,12 @@ export function ScanPage() {
                 ))}
                 <Button variant="ghost" onClick={() => setShowAuditSelector(false)}>Cancel</Button>
               </div>
-            </CardContent          </Card>
+            </CardContent>
+          </Card>
         )}
 
         {/* Camera View */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle>Point camera at barcode/QR code</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={switchCamera} disabled={scanning}>
-                  <Camera className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={toggleTorch} disabled={scanning || !hasPermission}>
-                  {torchOn ? <Flashlight className="h-4 w-4 text-amber-500" /> : <Flashlight className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 relative">
-            {hasPermission ? (
-              <>
-                <video
-                  ref={videoRef}
-                  className="w-full aspect-video object-cover"
-                  playsInline
-                  muted
-                />
-                {/* Scanning overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className={cn(
-                    'w-64 h-32 border-2 border-primary/50 rounded-lg shadow-lg',
-                    scanning && 'animate-pulse border-primary'
-                  )}>
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs text-primary font-medium">
-                      SCAN AREA
-                    </div>
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
-                      Align barcode within frame
-                    </div>
-                  </div>
-                </div>
-               
-                {/* Scan result overlay */}
-                {scanResult && (
-                  <div className="absolute bottom-4 left-4 right-4 z-10 animate-slide-up">
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Check className="h-6 w-6 text-green-600" />
-                            <div>
-                              <p className="font-medium">Asset Found</p>
-                              <p className="text-sm text-muted-foreground font-mono">{scanResult}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={clearResult}>
-                              <X className="h-4 w-4" />
-                              Scan Again
-                            </Button>
-                            <Button size="sm" onClick={viewAsset}>
-                              View Asset
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-              </>
-
-              {/* Scan button */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                <Button 
-                  size="lg" 
-                  onClick={scanning ? stopScanning : startScanning} 
-                  disabled={!selectedAuditId}
-                  className="w-48"
-                >
-                  {scanning ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Stop Scanning
-                    </>
-                  ) : (
-                    <>
-                      <ScanBarcode className="h-5 w-5 mr-2" />
-                      {selectedAuditId ? 'Start Scanning' : 'Select Audit First'}
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
-                <Camera className="h-16 w-16 mb-4 opacity-50" />
-                <p className="text-lg font-medium">Camera access required</p>
-                <p className="text-sm">Please enable camera permissions to scan</p>
-                <Button className="mt-4" onClick={() => window.location.reload()}>
-                  Retry
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {renderCameraView()}
 
         {/* Scan History */}
         <Card className="mt-4">

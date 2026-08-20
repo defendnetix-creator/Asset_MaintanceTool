@@ -12,6 +12,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../utils/helpers';
 import { useToast } from './ui/useToast';
+import { PWAInstallPrompt } from './ui/PWAInstallPrompt';
+import { OfflineIndicator } from './ui/OfflineIndicator';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -312,6 +314,12 @@ export function Layout() {
           </div>
         </div>
       </header>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+      
+      {/* Offline Indicator */}
+      <OfflineIndicator />
 
       {/* Main content */}
       <main
