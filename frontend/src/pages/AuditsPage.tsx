@@ -241,5 +241,3 @@ export function AuditsPage() {
     </div>
   );
 }
-
-import { ChevronLeft, ChevronRight } from 'lucide-react';
