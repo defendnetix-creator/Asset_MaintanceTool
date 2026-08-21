@@ -4,6 +4,7 @@
 import Fastify from 'fastify';
 import fs from 'fs';
 import path from 'path';
+import fastifyCookie from '@fastify/cookie';
 import { errorHandler } from './middleware/error-handler.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { PrismaClient } from '@prisma/client';
@@ -78,12 +79,23 @@ async function main() {
   // Register Redis plugin - call directly (not app.register) so redis decoration is on main app instance
   await redisPlugin(app);
 
-  // Register JWT plugins directly on main app (before authPlugin)
+  // Register cookie parser FIRST (needed for JWT cookie verification)
+  const COOKIE_SECRET = process.env.COOKIE_SECRET || 'change-me-in-production';
+  await app.register(fastifyCookie, {
+    secret: COOKIE_SECRET,
+    parseOptions: { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax' 
+    },
+    hook: 'onRequest',
+  });
+
+  // Register JWT plugins directly on main app (AFTER cookie parser)
   const PRIVATE_KEY = process.env.JWT_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/private.pem'), 'utf-8');
   const PUBLIC_KEY = process.env.JWT_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/public.pem'), 'utf-8');
   const REFRESH_PRIVATE_KEY = process.env.JWT_REFRESH_PRIVATE_KEY || fs.readFileSync(path.resolve('keys/refresh-private.pem'), 'utf-8');
   const REFRESH_PUBLIC_KEY = process.env.JWT_REFRESH_PUBLIC_KEY || fs.readFileSync(path.resolve('keys/refresh-public.pem'), 'utf-8');
-  const COOKIE_SECRET = process.env.COOKIE_SECRET || 'change-me-in-production';
 
   await app.register(import('@fastify/jwt'), {
     secret: { private: PRIVATE_KEY, public: PUBLIC_KEY },

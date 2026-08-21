@@ -2,7 +2,6 @@
 // Authentication plugin with JWT (RS256) + Argon2id - JWT registration moved to index.ts
 
 import { FastifyPluginAsync } from 'fastify';
-import fastifyCookie from '@fastify/cookie';
 import argon2 from 'argon2';
 import fs from 'fs';
 import path from 'path';
@@ -16,16 +15,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return argon2.verify(hash, password);
 }
 
-const COOKIE_SECRET = process.env.COOKIE_SECRET || 'change-me-in-production';
-
 export const authPlugin: FastifyPluginAsync = async (app) => {
-  // Cookie parsing
-  await app.register(fastifyCookie, {
-    secret: COOKIE_SECRET,
-    parseOptions: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' },
-    hook: 'onRequest',
-  });
-
   // Public route check
   function isPublicRoute(url: string): boolean {
     const publicRoutes = [
@@ -41,20 +31,28 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
     return publicRoutes.some(route => url.startsWith(route));
   }
 
-  // Auth hook
+  // Auth hook - try Authorization header first, then cookie
   app.addHook('preHandler', async (request, reply) => {
     if (isPublicRoute(request.url)) return;
 
     try {
-      const accessToken = request.cookies?.accessToken;
-      const refreshToken = request.cookies?.refreshToken;
+      // Try Authorization header first (Bearer token)
+      const authHeader = request.headers.authorization;
+      let accessToken = null;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+      } else {
+        // Fallback to cookie
+        accessToken = request.cookies?.accessToken;
+      }
 
       if (!accessToken) {
         return reply.code(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
       }
 
-      // Verify access token
-      const decoded = await request.jwtVerify<{ userId: string; tenantId: string; role: string }>();
+      // Verify access token using explicit token
+      const decoded = await request.jwtVerify<{ userId: string; tenantId: string; role: string }>(accessToken);
 
       // Verify user exists and is active
       const user = await app.prisma.user.findUnique({
@@ -72,15 +70,15 @@ export const authPlugin: FastifyPluginAsync = async (app) => {
       // Try refresh token
       if (request.cookies?.refreshToken) {
         try {
-          const decoded = await request.jwtVerify<{ userId: string }>({ namespace: 'refresh' });
+          const decoded = await request.jwtVerify<{ userId: string }>(request.cookies.refreshToken, { namespace: 'refresh' });
           const user = await app.prisma.user.findUnique({ where: { id: decoded.userId } });
 
           if (user && user.status === 'ACTIVE') {
             const newAccessToken = app.jwt.sign({ userId: user.id, tenantId: user.tenant_id, role: user.role }, { expiresIn: '15m' });
             const newRefreshToken = app.jwt.sign({ userId: user.id }, { expiresIn: '7d', namespace: 'refresh' });
 
-            reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 15 * 60 });
-            reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 });
+            reply.setCookie('accessToken', newAccessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', maxAge: 15 * 60 });
+            reply.setCookie('refreshToken', newRefreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 });
 
             request.user = { id: user.id, tenantId: user.tenant_id, role: user.role, email: user.email };
             request.tenantId = user.tenant_id;
