@@ -190,9 +190,7 @@ export function getStatusColor(status: string): string {
     retired: 'badge-secondary',
     disposed: 'badge-destructive',
     open: 'badge-info',
-    in_progress: 'badge-info',
     on_hold: 'badge-warning',
-    completed: 'badge-success',
   };
   return colors[status.toLowerCase()] || 'badge-outline';
 }

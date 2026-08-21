@@ -637,7 +637,3 @@ export function AssetDetailPage() {
     </div>
   );
 }
-
-// Add missing imports
-import { MoreHorizontal } from 'lucide-react';
-import { formatFileSize } from '../utils/helpers';

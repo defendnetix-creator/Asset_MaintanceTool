@@ -373,5 +373,3 @@ export function SettingsPage() {
     </div>
   );
 }
-
-import { Loader2 } from 'lucide-react';
