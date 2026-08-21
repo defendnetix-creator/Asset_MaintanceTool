@@ -13,8 +13,9 @@ interface QueuedAction {
   maxRetries: number;
 }
 
-const STORAGE_KEY = 'assetmt_offline_queue';
-const MAX_RETRIES = 3;
+const DB_NAME = 'assetmt-offline';
+const DB_VERSION = 1;
+const STORE_NAME = 'queue';
 
 export function useOfflineQueue() {
   const [queue, setQueue] = useState<QueuedAction[]>([]);
@@ -22,24 +23,84 @@ export function useOfflineQueue() {
   const [syncing, setSyncing] = useState(false);
   const toast = useToast();
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dbRef = useRef<IDBDatabase | null>(null);
 
-  // Load queue from localStorage on mount
+  // Initialize IndexedDB
   useEffect(() => {
+    const request = indexedDB.open('assetmt-offline', 1);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('queue')) {
+        db.createObjectStore('queue', { keyPath: 'id' });
+      }
+    };
+    
+    request.onsuccess = (event) => {
+      dbRef.current = event.target.result;
+      loadQueue();
+    };
+    
+    request.onerror = () => {
+      console.error('Failed to open IndexedDB:', request.error);
+      // Fallback to localStorage
+      loadQueueFromLocalStorage();
+    };
+  }, []);
+
+  const loadQueue = () => {
+    if (!dbRef.current) return;
+    
+    const transaction = dbRef.current.transaction(['queue'], 'readonly');
+    const store = transaction.objectStore('queue');
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      setQueue(request.result);
+    };
+    
+    request.onerror = () => {
+      console.error('Failed to load queue from IndexedDB:', request.error);
+      loadQueueFromLocalStorage();
+    };
+  };
+
+  const loadQueueFromLocalStorage = () => {
     const stored = localStorage.getItem('assetmt_offline_queue');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setQueue(parsed);
       } catch (e) {
-        console.error('Failed to parse offline queue:', e);
+        console.error('Failed to parse offline queue from localStorage:', e);
       }
     }
+  };
+
+  // Save queue to IndexedDB (and localStorage as backup)
+  const saveQueue = useCallback(async (newQueue: QueuedAction[]) => {
+    // Save to IndexedDB
+    if (dbRef.current) {
+      const transaction = dbRef.current.transaction(['queue'], 'readwrite');
+      const store = transaction.objectStore('queue');
+      
+      // Clear existing and add all
+      store.clear();
+      newQueue.forEach(action => store.put(action));
+    }
+    
+    // Backup to localStorage
+    localStorage.setItem('assetmt_offline_queue', JSON.stringify(newQueue));
   }, []);
 
-  // Save queue to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('assetmt_offline_queue', JSON.stringify(queue));
-  }, [queue]);
+  // Update queue state and save
+  const setQueueAndSave = useCallback((newQueue: QueuedAction[] | ((prev: QueuedAction[]) => QueuedAction[])) => {
+    setQueue(prev => {
+      const newQueue = typeof newQueue === 'function' ? newQueue(prev) : newQueue;
+      saveQueue(newQueue);
+      return newQueue;
+    });
+  }, [saveQueue]);
 
   // Online/offline detection
   useEffect(() => {
@@ -74,18 +135,18 @@ export function useOfflineQueue() {
       timestamp: Date.now(),
       retryCount: 0,
     };
-    setQueue(prev => [...prev, newAction]);
+    setQueueAndSave(prev => [...prev, newAction]);
     toast.info('Action queued for sync');
   }, [toast]);
 
   // Remove action from queue
   const removeFromQueue = useCallback((id: string) => {
-    setQueue(prev => prev.filter(action => action.id !== id));
+    setQueueAndSave(prev => prev.filter(action => action.id !== id));
   }, []);
 
   // Retry failed action
   const retryAction = useCallback((id: string) => {
-    setQueue(prev => prev.map(action => 
+    setQueueAndSave(prev => prev.map(action => 
       action.id === id ? { ...action, retryCount: 0 } : action
     ));
   }, []);
@@ -105,7 +166,7 @@ export function useOfflineQueue() {
         removeFromQueue(action.id);
       } catch (error) {
         console.error('Failed to process action:', action.id, error);
-        setQueue(prev => prev.map(a => 
+        setQueueAndSave(prev => prev.map(a => 
           a.id === action.id 
             ? { ...a, retryCount: a.retryCount + 1 } 
             : a
@@ -134,7 +195,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ asset_tag: payload.tag, status: payload.status }),
-        });
+        );
 
       case 'audit':
         return fetch(`${baseUrl}/audits`, {
@@ -150,7 +211,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(payload.data),
-        });
+        );
 
       case 'maintenance':
         return fetch(`${baseUrl}/maintenance`, {
