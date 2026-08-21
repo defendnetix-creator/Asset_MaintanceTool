@@ -168,7 +168,8 @@ export function MaintenancePage() {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>WO Number</TableHead>
@@ -238,7 +239,9 @@ export function MaintenancePage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
+              {/* Pagination */}
               <div className="flex items-center justify-between border-t border-border p-4">
                 <div className="text-sm text-muted-foreground">
                   Showing {(page - 1) * limit + 1} to {Math.min(page * limit, data?.pagination.total || 0)} of {data?.pagination.total || 0} work orders
@@ -247,7 +250,9 @@ export function MaintenancePage() {
                   <Button variant="outline" size="sm" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="px-3 text-sm">Page {page} of {data?.pagination.total_pages || 1}</span>
+                  <span className="px-3 text-sm">
+                    Page {page} of {data?.pagination.total_pages || 1}
+                  </span>
                   <Button variant="outline" size="sm" onClick={() => handlePageChange(page + 1)} disabled={page >= (data?.pagination.total_pages || 1)}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>

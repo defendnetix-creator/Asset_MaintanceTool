@@ -145,7 +145,8 @@ export function AuditsPage() {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
@@ -219,6 +220,7 @@ export function AuditsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               <div className="flex items-center justify-between border-t border-border p-4">
                 <div className="text-sm text-muted-foreground">

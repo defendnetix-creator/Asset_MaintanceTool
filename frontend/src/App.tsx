@@ -1,22 +1,25 @@
 // frontend/src/App.tsx
 // Main App component with routing
 
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Suspense, lazy } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Layout } from './components/Layout';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { AssetsPage } from './pages/AssetsPage';
-import { AssetDetailPage } from './pages/AssetDetailPage';
-import { AuditsPage } from './pages/AuditsPage';
-import { AuditDetailPage } from './pages/AuditDetailPage';
-import { MaintenancePage } from './pages/MaintenancePage';
-import { ReportsPage } from './pages/ReportsPage';
-import { UsersPage } from './pages/UsersPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { AdminPage } from './pages/AdminPage';
-import { ScanPage } from './pages/ScanPage';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { LoadingSpinner } from './components/LoadingStates';
+
+// Lazy load pages for code splitting
+const LoginPage = lazy(() => import('./pages/LoginPage').then(module => ({ default: module.LoginPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const AssetsPage = lazy(() => import('./pages/AssetsPage').then(module => ({ default: module.AssetsPage })));
+const AssetDetailPage = lazy(() => import('./pages/AssetDetailPage').then(module => ({ default: module.AssetDetailPage })));
+const AuditsPage = lazy(() => import('./pages/AuditsPage').then(module => ({ default: module.AuditsPage })));
+const AuditDetailPage = lazy(() => import('./pages/AuditDetailPage').then(module => ({ default: module.AuditDetailPage })));
+const MaintenancePage = lazy(() => import('./pages/MaintenancePage').then(module => ({ default: module.MaintenancePage })));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then(module => ({ default: module.ReportsPage })));
+const UsersPage = lazy(() => import('./pages/UsersPage').then(module => ({ default: module.UsersPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.AdminPage })));
+const ScanPage = lazy(() => import('./pages/ScanPage').then(module => ({ default: module.ScanPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(module => ({ default: module.NotFoundPage })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -60,7 +63,9 @@ export function App() {
       {/* Public routes */}
       <Route path="/login" element={
         <PublicRoute>
-          <LoginPage />
+          <Suspense fallback={<LoadingSpinner label="Loading login..." />}>
+            <LoginPage />
+          </Suspense>
         </PublicRoute>
       } />
       
@@ -70,23 +75,79 @@ export function App() {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/assets" element={<AssetsPage />} />
-        <Route path="/assets/new" element={<AssetDetailPage />} />
-        <Route path="/assets/:id" element={<AssetDetailPage />} />
-        <Route path="/audits" element={<AuditsPage />} />
-        <Route path="/audits/new" element={<AuditDetailPage />} />
-        <Route path="/audits/:id" element={<AuditDetailPage />} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/scan" element={<ScanPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={
+          <Suspense fallback={<LoadingSpinner label="Loading dashboard..." />}>
+            <DashboardPage />
+          </Suspense>
+        } />
+        <Route path="/assets" element={
+          <Suspense fallback={<LoadingSpinner label="Loading assets..." />}>
+            <AssetsPage />
+          </Suspense>
+        } />
+        <Route path="/assets/new" element={
+          <Suspense fallback={<LoadingSpinner label="Loading..." />}>
+            <AssetDetailPage />
+          </Suspense>
+        } />
+        <Route path="/assets/:id" element={
+          <Suspense fallback={<LoadingSpinner label="Loading..." />}>
+            <AssetDetailPage />
+          </Suspense>
+        } />
+        <Route path="/audits" element={
+          <Suspense fallback={<LoadingSpinner label="Loading audits..." />}>
+            <AuditsPage />
+          </Suspense>
+        } />
+        <Route path="/audits/new" element={
+          <Suspense fallback={<LoadingSpinner label="Loading..." />}>
+            <AuditDetailPage />
+          </Suspense>
+        } />
+        <Route path="/audits/:id" element={
+          <Suspense fallback={<LoadingSpinner label="Loading..." />}>
+            <AuditDetailPage />
+          </Suspense>
+        } />
+        <Route path="/maintenance" element={
+          <Suspense fallback={<LoadingSpinner label="Loading maintenance..." />}>
+            <MaintenancePage />
+          </Suspense>
+        } />
+        <Route path="/reports" element={
+          <Suspense fallback={<LoadingSpinner label="Loading reports..." />}>
+            <ReportsPage />
+          </Suspense>
+        } />
+        <Route path="/users" element={
+          <Suspense fallback={<LoadingSpinner label="Loading users..." />}>
+            <UsersPage />
+          </Suspense>
+        } />
+        <Route path="/scan" element={
+          <Suspense fallback={<LoadingSpinner label="Loading scanner..." />}>
+            <ScanPage />
+          </Suspense>
+        } />
+        <Route path="/settings" element={
+          <Suspense fallback={<LoadingSpinner label="Loading settings..." />}>
+            <SettingsPage />
+          </Suspense>
+        } />
+        <Route path="/admin" element={
+          <Suspense fallback={<LoadingSpinner label="Loading admin..." />}>
+            <AdminPage />
+          </Suspense>
+        } />
       </Route>
       
       {/* 404 */}
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="*" element={
+        <Suspense fallback={<LoadingSpinner label="Loading..." />}>
+          <NotFoundPage />
+        </Suspense>
+      } />
     </Routes>
   );
 }

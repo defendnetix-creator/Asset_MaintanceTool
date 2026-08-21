@@ -175,17 +175,17 @@ export function AuditDetailPage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Progress</span>
             <span className="text-sm text-muted-foreground">
-              {audit.total_assets > 0 
+              {audit.total_assets > 0
                 ? `${Math.round((audit.scanned_count / audit.total_assets) * 100)}%`
                 : '0%'}
-            </span>
-          </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${audit.total_assets > 0 ? (audit.scanned_count / audit.total_assets) * 100 : 0}%` }}
-            />
-          </div>
+          </span>
+        </div>
+        <div className="h-3 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${audit.total_assets > 0 ? (audit.scanned_count / audit.total_assets) * 100 : 0}%` }}
+          />
+        </div>
         </CardContent>
       </Card>
 
@@ -310,32 +310,34 @@ export function AuditDetailPage() {
             </CardHeader>
             <CardContent>
               {audit.items?.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Asset Tag</TableHead>
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Expected Location</TableHead>
-                      <TableHead>Scanned Location</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Scanned At</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {audit.items.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono font-medium">{item.asset.asset_tag}</TableCell>
-                        <TableCell>{item.asset.make || ''} {item.asset.model || ''}</TableCell>
-                        <TableCell>{item.expected_location?.name || '—'}</TableCell>
-                        <TableCell>{item.scanned_location?.name || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusColor(item.status) as any}>{item.status}</Badge>
-                        </TableCell>
-                        <TableCell>{item.scanned_at ? formatDateTime(item.scanned_at) : '—'}</TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Asset Tag</TableHead>
+                        <TableHead>Asset</TableHead>
+                        <TableHead>Expected Location</TableHead>
+                        <TableHead>Scanned Location</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Scanned At</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {audit.items.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono font-medium">{item.asset.asset_tag}</TableCell>
+                          <TableCell>{item.asset.make || ''} {item.asset.model || ''}</TableCell>
+                          <TableCell>{item.expected_location?.name || '—'}</TableCell>
+                          <TableCell>{item.scanned_location?.name || '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusColor(item.status) as any}>{item.status}</Badge>
+                          </TableCell>
+                          <TableCell>{item.scanned_at ? formatDateTime(item.scanned_at) : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -357,40 +359,42 @@ export function AuditDetailPage() {
             </CardHeader>
             <CardContent>
               {audit.discrepancies?.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Expected</TableHead>
-                      <TableHead>Found</TableHead>
-                      <TableHead>Severity</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {audit.discrepancies.map(disc => (
-                      <TableRow key={disc.id}>
-                        <TableCell className="font-mono font-medium">{disc.asset.asset_tag}</TableCell>
-                        <TableCell><Badge variant="outline">{disc.type}</Badge></TableCell>
-                        <TableCell>{disc.expected_location?.name || '—'}</TableCell>
-                        <TableCell>{disc.found_location?.name || '—'}</TableCell>
-                        <TableCell><Badge variant={disc.severity === 'HIGH' ? 'destructive' : disc.severity === 'MEDIUM' ? 'warning' : 'secondary'}>{disc.severity}</Badge></TableCell>
-                        <TableCell><Badge variant={getStatusColor(disc.status) as any}>{disc.status}</Badge></TableCell>
-                        <TableCell>
-                          {disc.status === 'OPEN' && (
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'confirm_match')}>Confirm Match</Button>
-                              <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'update_location')}>Update Location</Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleReconcile(disc.id, 'ignore')}>Ignore</Button>
-                            </div>
-                          )}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Asset</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Expected</TableHead>
+                        <TableHead>Found</TableHead>
+                        <TableHead>Severity</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {audit.discrepancies.map(disc => (
+                        <TableRow key={disc.id}>
+                          <TableCell className="font-mono font-medium">{disc.asset.asset_tag}</TableCell>
+                          <TableCell><Badge variant="outline">{disc.type}</Badge></TableCell>
+                          <TableCell>{disc.expected_location?.name || '—'}</TableCell>
+                          <TableCell>{disc.found_location?.name || '—'}</TableCell>
+                          <TableCell><Badge variant={disc.severity === 'HIGH' ? 'destructive' : disc.severity === 'MEDIUM' ? 'warning' : 'secondary'}>{disc.severity}</Badge></TableCell>
+                          <TableCell><Badge variant={getStatusColor(disc.status) as any}>{disc.status}</Badge></TableCell>
+                          <TableCell>
+                            {disc.status === 'OPEN' && (
+                              <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'confirm_match')}>Confirm Match</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'update_location')}>Update Location</Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleReconcile(disc.id, 'ignore')}>Ignore</Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50 text-green-500" />

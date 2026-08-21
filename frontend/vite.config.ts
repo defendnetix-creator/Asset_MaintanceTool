@@ -49,7 +49,12 @@ export default defineConfig({
             url: '/assets/new',
             icons: [{ src: '/icons/add.png', sizes: '192x192' }]
           }
-        ]
+        ],
+        // Background sync support
+        background_sync: {
+          enabled: true,
+          sync_tags: ['scan-sync', 'audit-sync', 'asset-sync']
+        }
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

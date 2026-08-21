@@ -238,7 +238,8 @@ export function AssetsPage() {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
@@ -323,6 +324,7 @@ export function AssetsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between border-t border-border p-4">

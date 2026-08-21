@@ -179,7 +179,8 @@ export function ReportsPage() {
             </CardHeader>
             <CardContent>
               {reports?.data?.length ? (
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -214,6 +215,7 @@ export function ReportsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
