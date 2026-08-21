@@ -260,5 +260,3 @@ export function MaintenancePage() {
     </div>
   );
 }
-
-import { Search, Wrench, ChevronLeft, ChevronRight, MoreHorizontal, AlertTriangle, CheckCircle2 } from 'lucide-react';

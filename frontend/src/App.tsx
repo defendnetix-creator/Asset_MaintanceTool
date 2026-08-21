@@ -11,7 +11,6 @@ import { AssetDetailPage } from './pages/AssetDetailPage';
 import { AuditsPage } from './pages/AuditsPage';
 import { AuditDetailPage } from './pages/AuditDetailPage';
 import { MaintenancePage } from './pages/MaintenancePage';
-import { MaintenanceDetailPage } from './pages/MaintenanceDetailPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -79,8 +78,6 @@ export function App() {
         <Route path="/audits/new" element={<AuditDetailPage />} />
         <Route path="/audits/:id" element={<AuditDetailPage />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/maintenance/new" element={<MaintenanceDetailPage />} />
-        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/scan" element={<ScanPage />} />
