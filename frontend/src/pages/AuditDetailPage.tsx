@@ -404,6 +404,3 @@ export function AuditDetailPage() {
     </div>
   );
 }
-
-// Add formatDateTime import
-import { formatDateTime } from '../utils/helpers';

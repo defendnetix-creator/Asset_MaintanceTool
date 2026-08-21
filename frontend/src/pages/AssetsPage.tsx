@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Download, Upload, Columns, 
-  ChevronLeft, ChevronRight, Loader2, MoreHorizontal
+  ChevronLeft, ChevronRight, ChevronUp, Loader2, MoreHorizontal
 } from 'lucide-react';
 import { useAssets, useDeleteAsset, useBulkAssetOperation, useExportAssets } from '../api/assets';
 import { useAssets as useAssetsHook, useDeleteAsset as useDeleteAssetHook } from '../api/assets';
@@ -358,6 +358,3 @@ export function AssetsPage() {
     </div>
   );
 }
-
-// Add ChevronUp import
-import { ChevronUp } from 'lucide-react';

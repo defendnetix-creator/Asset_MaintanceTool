@@ -243,6 +243,3 @@ export function ReportsPage() {
     </div>
   );
 }
-
-import { TrendingUp, MoreHorizontal, Loader2 } from 'lucide-react';
-import { formatDateTime } from '../utils/helpers';
