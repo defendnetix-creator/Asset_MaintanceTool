@@ -1,8 +1,7 @@
 // frontend/src/components/EmptyStates.tsx
 // Empty state components for better UX when data is empty
 
-import { cn } from '../../utils/helpers';
-import { Button } from './ui/Button';
+import { Button } from '@/components/ui/Button';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -22,7 +21,6 @@ export function EmptyState({
   title, 
   description, 
   action, 
-  className, 
   illustration 
 }: EmptyStateProps) {
   return (
@@ -64,12 +62,12 @@ export function EmptyAssets({ onAdd }: { onAdd?: () => void }) {
       <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
         Get started by adding your first asset to the inventory.
       </p>
-      <button 
+      <Button 
         onClick={onAdd || (() => window.location.href = '/assets/new')}
         className="btn-primary"
       >
         Add Your First Asset
-      </button>
+      </Button>
     </div>
   );
 }
@@ -86,12 +84,12 @@ export function EmptyAudits({ onCreate }: { onCreate?: () => void }) {
       <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
         Create your first audit session to start tracking inventory.
       </p>
-      <button 
+      <Button 
         onClick={onCreate || (() => window.location.href = '/audits/new')}
         className="btn-primary"
       >
         Create Audit Session
-      </button>
+      </Button>
     </div>
   );
 }
@@ -108,12 +106,12 @@ export function EmptyMaintenance({ onCreate }: { onCreate?: () => void }) {
       <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
         Create your first work order to start tracking maintenance tasks.
       </p>
-      <button 
+      <Button 
         onClick={onCreate || (() => window.location.href = '/maintenance/new')}
         className="btn-primary"
       >
         Create Work Order
-      </button>
+      </Button>
     </div>
   );
 }
@@ -133,12 +131,12 @@ export function EmptyUsers({ onInvite }: { onInvite?: () => void }) {
       <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
         Invite your first team member to start collaborating.
       </p>
-      <button 
+      <Button 
         onClick={onInvite || (() => window.location.href = '/users/new')}
         className="btn-primary"
       >
         Invite User
-      </button>
+      </Button>
     </div>
   );
 }
@@ -154,9 +152,9 @@ export function EmptyReports({ onCreate }: { onCreate?: () => void }) {
         <polyline points="10 9 9 9 8 9" />
       </svg>
       <p>No custom reports yet</p>
-      <button className="mt-4 btn-outline" onClick={onCreate}>
+      <Button className="mt-4 btn-outline" onClick={onCreate}>
         Create Custom Report
-      </button>
+      </Button>
     </div>
   );
 }
@@ -225,12 +223,12 @@ export function GenericEmptyState({
       <h3 className="text-lg font-medium mb-2">{title}</h3>
       {description && <p className="text-muted-foreground mb-6 max-w-sm mx-auto">{description}</p>}
       {action && (
-        <button 
+        <Button 
           onClick={action.onClick}
-          className={`btn-${action.variant || 'primary'}`}
+          variant={action.variant || 'primary'}
         >
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );

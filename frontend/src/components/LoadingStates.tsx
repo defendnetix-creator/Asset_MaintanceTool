@@ -1,7 +1,7 @@
 // frontend/src/components/LoadingStates.tsx
 // Loading states and skeleton components for better UX
 
-import { cn } from '../../utils/helpers';
+import { cn } from '@/utils/helpers';
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'text' | 'circular' | 'rectangular' | 'card';
@@ -66,7 +66,7 @@ export function SkeletonTable({ rows = 5, columns = 4, className, ...props }: { 
               <th key={i} className="h-12 px-4 text-left">
                 <Skeleton variant="text" width="80%" />
               </th>
-            )}
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -156,7 +156,7 @@ export function PageLoading({ className, label = 'Loading...' }: { className?: s
 }
 
 // Inline loading state for buttons/actions
-export function InlineLoading({ className, size = 'sm' }: { className?: string; size?: 'sm' | 'md' }) {
+export function InlineLoading({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-6 w-6',

@@ -1,15 +1,19 @@
 // frontend/src/pages/DashboardPage.tsx
 // Dashboard page with KPI cards and charts
 
-import { useQuery } from '@tanstack/react-query';
 import { 
   Box, User, Wrench, Shield, TrendingUp, TrendingDown, 
   ClipboardCheck, BarChart2, AlertTriangle, Package
 } from 'lucide-react';
 import { useDashboardWidgets } from '../api/reports';
-import { cn, formatCurrency, formatRelativeTime } from '../utils/helpers';
+import { cn } from '../utils/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+
+// Recharts imports for charts
+import {
+  PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, LineChart, Line, ResponsiveContainer
+} from 'recharts';
 
 const kpiCards = [
   { 
@@ -180,7 +184,8 @@ export function DashboardPage() {
                       nameKey="status"
                       label={({ status, count, percent }) => `${status}: ${count} (${(percent * 100).toFixed(0)}%)`}
                     >
-                      {dashboard.charts.assetsByStatus.map((entry, index) => (
+                      {/* {dashboard.charts.assetsByStatus.map((entry, index) => ( */}
+                      {dashboard.charts.assetsByStatus.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 50%)`} />
                       ))}
                     </Pie>
@@ -247,7 +252,8 @@ export function DashboardPage() {
                       nameKey="status"
                       label={({ status, count, percent }) => `${status}: ${count} (${(percent * 100).toFixed(0)}%)`}
                     >
-                      {dashboard.charts.workOrdersByStatus.map((entry, index) => (
+                      {/* {dashboard.charts.workOrdersByStatus.map((entry, index) => ( */}
+                      {dashboard.charts.workOrdersByStatus.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={`hsl(${index * 60 + 120}, 70%, 50%)`} />
                       ))}
                     </Pie>
@@ -327,9 +333,3 @@ export function DashboardPage() {
     </div>
   );
 }
-
-// Recharts imports for charts
-import {
-  PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, LineChart, Line, ResponsiveContainer
-} from 'recharts';

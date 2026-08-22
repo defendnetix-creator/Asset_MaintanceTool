@@ -4,21 +4,17 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, Download, Upload, Columns, 
-  ChevronLeft, ChevronRight, ChevronUp, Loader2, MoreHorizontal
+  Plus, Search, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Loader2, MoreHorizontal, Box
 } from 'lucide-react';
 import { useAssets, useDeleteAsset, useBulkAssetOperation, useExportAssets } from '../api/assets';
-import { useAssets as useAssetsHook, useDeleteAsset as useDeleteAssetHook } from '../api/assets';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '../components/ui/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { cn, formatDate, getStatusColor, formatCurrency } from '../utils/helpers';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
+import { Card, CardContent } from '../components/ui/Card';
+import { formatDate, getStatusColor } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
-import { useAuth } from '../hooks/useAuth';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -30,26 +26,16 @@ const statusOptions = [
   { value: 'DISPOSED', label: 'Disposed' },
 ];
 
-const sortOptions = [
-  { value: 'created_at', label: 'Created Date' },
-  { value: 'asset_tag', label: 'Asset Tag' },
-  { value: 'make', label: 'Make' },
-  { value: 'model', label: 'Model' },
-  { value: 'status', label: 'Status' },
-  { value: 'updated_at', label: 'Last Updated' },
-];
-
 export function AssetsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const toast = useToast();
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '25', 10);
   const sort = searchParams.get('sort') || 'created_at';
-  const order = searchParams.get('order') || 'desc';
+  const order = (searchParams.get('order') as 'asc' | 'desc' | undefined) || 'desc';
   const search = searchParams.get('search') || '';
   const status = searchParams.get('status') || '';
 
@@ -121,7 +107,7 @@ export function AssetsPage() {
     const result = await bulkOperation.mutateAsync({
       action: 'delete',
       asset_ids: selectedAssets,
-    });
+    }) as { processed: number; failed: number };
 
     if (result.failed === 0) {
       toast.success(`Deleted ${result.processed} asset(s)`);
@@ -135,9 +121,9 @@ export function AssetsPage() {
 
   const handleExport = async () => {
     try {
-      const response = await exportAssets.mutateAsync({ format: 'csv', status: status || undefined });
+      const response = await exportAssets.mutateAsync({ status: status || undefined });
       // Handle blob download
-      const blob = new Blob([response], { type: 'text/csv' });
+      const blob = new Blob([response as BlobPart], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -162,7 +148,7 @@ export function AssetsPage() {
     return (
       <div className="card p-6 text-center">
         <p className="text-destructive">Failed to load assets</p>
-        <button onClick={refetch} className="btn-primary mt-4">Retry</button>
+        <button onClick={() => refetch()} className="btn-primary mt-4">Retry</button>
       </div>
     );
   }

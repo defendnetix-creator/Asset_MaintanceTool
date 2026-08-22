@@ -1,20 +1,18 @@
 // frontend/src/pages/AuditsPage.tsx
 // Audits list page
 
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, Download, ClipboardCheck, 
+  Plus, Search, ClipboardCheck, 
   ChevronLeft, ChevronRight, Loader2, MoreHorizontal, Play, CheckCircle2
 } from 'lucide-react';
 import { useAudits, useStartAudit, useCompleteAudit } from '../api/audits';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { cn, formatDate, getStatusColor } from '../utils/helpers';
+import { Card, CardContent } from '../components/ui/Card';
+import { formatDate, getStatusColor } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
 
@@ -37,8 +35,7 @@ const scopeTypeOptions = [
 
 export function AuditsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
-  const [selectedAudits, setSelectedAudits] = useState<string[]>([]);
+  const toast = useToast();
 
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '25', 10);
@@ -95,7 +92,7 @@ export function AuditsPage() {
     return (
       <div className="card p-6 text-center">
         <p className="text-destructive">Failed to load audits</p>
-        <button onClick={refetch} className="btn-primary mt-4">Retry</button>
+        <button onClick={() => refetch()} className="btn-primary mt-4">Retry</button>
       </div>
     );
   }

@@ -5,21 +5,20 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ScanBarcode, Camera, Flashlight, X, Check, Loader2, 
-  History, Settings, Home, Package, AlertTriangle, ChevronLeft
+  History, Settings, Home, Package, ChevronLeft, Plus
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { cn, formatDateTime } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
-import { useAuth } from '../hooks/useAuth';
 import { useSubmitScan, useAudits } from '../api/audits';
 import { BrowserMultiFormatReader, Result } from '@zxing/library';
 
 export function ScanPage() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const toast = useToast();
+  // const { user } = useAuth(); // Not currently used
   
   const [hasPermission, setHasPermission] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -99,9 +98,10 @@ export function ScanPage() {
   const toggleTorch = async () => {
     if (!streamRef.current) return;
     const track = streamRef.current.getVideoTracks()[0];
-    if (track.getCapabilities().torch) {
+    const capabilities = track.getCapabilities();
+    if ('torch' in capabilities) {
       try {
-        await track.applyConstraints({ advanced: [{ torch: !torchOn }] });
+        await track.applyConstraints({ advanced: [{ torch: !torchOn }] as any });
         setTorchOn(!torchOn);
       } catch (err) {
         console.error('Torch toggle failed:', err);
@@ -122,7 +122,7 @@ export function ScanPage() {
     
     try {
       await codeReaderRef.current!.decodeFromVideoDevice(
-        undefined, // auto-select camera
+        null, // auto-select camera
         videoRef.current!,
         (result: Result | null) => {
           if (result) {
@@ -346,7 +346,7 @@ export function ScanPage() {
                 {activeAudits.map(audit => (
                   <Button
                     key={audit.id}
-                    variant={selectedAuditId === audit.id ? 'default' : 'outline'}
+                    variant={selectedAuditId === audit.id ? 'primary' : 'outline'}
                     className="w-full justify-start"
                     onClick={() => {
                       setSelectedAuditId(audit.id);

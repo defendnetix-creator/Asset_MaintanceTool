@@ -1,20 +1,18 @@
 // frontend/src/pages/MaintenancePage.tsx
 // Maintenance work orders page
 
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, Download, Wrench, 
+  Plus, Search, Wrench, 
   ChevronLeft, ChevronRight, Loader2, MoreHorizontal, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { useMaintenanceWorkOrders, useStartMaintenance, useCompleteMaintenance } from '../api/maintenance';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { cn, formatDate, getStatusColor, getPriorityColor, getPriorityLabel } from '../utils/helpers';
+import { Card, CardContent } from '../components/ui/Card';
+import { formatDate, getStatusColor, getPriorityColor, getPriorityLabel } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
 
@@ -45,7 +43,7 @@ const priorityOptions = [
 
 export function MaintenancePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
+  const toast = useToast();
 
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '25', 10);
@@ -113,7 +111,7 @@ export function MaintenancePage() {
     return (
       <div className="card p-6 text-center">
         <p className="text-destructive">Failed to load work orders</p>
-        <button onClick={refetch} className="btn-primary mt-4">Retry</button>
+        <button onClick={() => refetch()} className="btn-primary mt-4">Retry</button>
       </div>
     );
   }

@@ -7,8 +7,7 @@ import type {
   MaintenanceWorkOrder, 
   PaginatedResponse, 
   MaintenanceFilters, 
-  CreateMaintenanceInput,
-  MaintenanceCompleteSchema
+  CreateMaintenanceInput
 } from '../types/api';
 
 export const maintenanceKeys = {

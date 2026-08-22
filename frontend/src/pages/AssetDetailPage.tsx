@@ -5,74 +5,35 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, Trash2, Box, User, MapPin, Tag, FileText, 
-  Image, History, Settings, Plus, Download, Loader2,
-  ClipboardCheck, Wrench
+  Image, History, Settings, Plus, Download,
+  ClipboardCheck, Wrench, MoreHorizontal
 } from 'lucide-react';
-import { useAsset, useUpdateAsset, useDeleteAsset, useAssetEvents } from '../api/assets';
+import { useAsset, useDeleteAsset, useAssetEvents } from '../api/assets';
 import { useAssetAudits } from '../api/audits';
 import { useAssetMaintenance } from '../api/maintenance';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
-import { cn, formatDate, getStatusColor, formatCurrency, formatDateTime } from '../utils/helpers';
+import { formatDate, formatDateTime, getStatusColor, formatCurrency, formatFileSize } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { useAuth } from '../hooks/useAuth';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
-
-const statusOptions = [
-  { value: 'IN_STOCK', label: 'In Stock' },
-  { value: 'ASSIGNED', label: 'Assigned' },
-  { value: 'IN_REPAIR', label: 'In Repair' },
-  { value: 'ON_LOAN', label: 'On Loan' },
-  { value: 'RETIRED', label: 'Retired' },
-  { value: 'DISPOSED', label: 'Disposed' },
-];
-
-const conditionOptions = [
-  'New', 'Excellent', 'Good', 'Fair', 'Poor', 'Damaged',
-];
 
 export function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
 
-  const { data: asset, isLoading, error, refetch } = useAsset(id!);
+  const { data: asset, isLoading, error } = useAsset(id!);
   const { data: events, isLoading: eventsLoading } = useAssetEvents(id!);
   const { data: auditsData, isLoading: auditsLoading } = useAssetAudits(id!);
   const { data: maintenanceData, isLoading: maintenanceLoading } = useAssetMaintenance(id!);
-  const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
-
-  const handleSave = async () => {
-    try {
-      await updateAsset.mutateAsync({ id: id!, data: editForm });
-      toast.success('Asset updated successfully');
-      setIsEditing(false);
-      refetch();
-    } catch (err) {
-      toast.error('Failed to update asset');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this asset? This cannot be undone.')) return;
-    try {
-      await deleteAsset.mutateAsync(id!);
-      toast.success('Asset deleted');
-      navigate('/assets');
-    } catch (err) {
-      toast.error('Failed to delete asset');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -134,7 +95,19 @@ export function AssetDetailPage() {
                   <a href={`/assets/${asset.id}`} download>Export</a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <DropdownMenuItem 
+                  onClick={async () => {
+                    if (!confirm('Are you sure you want to delete this asset? This cannot be undone.')) return;
+                    try {
+                      await deleteAsset.mutateAsync(id!);
+                      toast.success('Asset deleted');
+                      navigate('/assets');
+                    } catch (err) {
+                      toast.error('Failed to delete asset');
+                    }
+                  }} 
+                  className="text-destructive"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Asset
                 </DropdownMenuItem>
@@ -615,10 +588,10 @@ export function AssetDetailPage() {
                   <TableBody>
                     {asset.custom_fields.map(cf => (
                       <TableRow key={cf.id}>
-                        <TableCell className="font-medium">{cf.custom_field?.label || cf.name}</TableCell>
+                        <TableCell className="font-medium">{cf.custom_field?.label || cf.custom_field?.name || '—'}</TableCell>
                         <TableCell><Badge variant="outline">{cf.custom_field?.type}</Badge></TableCell>
                         <TableCell>
-                          {cf.value_text ?? cf.value_number ?? cf.value_boolean?.toString() ?? cf.value_date ? formatDate(cf.value_date) : cf.value_json ? JSON.stringify(cf.value_json) : '—'}
+                          {cf.value_text ?? cf.value_number ?? cf.value_boolean?.toString() ?? cf.value_date ? formatDate(cf.value_date || '') : cf.value_json ? JSON.stringify(cf.value_json) : '—'}
                         </TableCell>
                       </TableRow>
                     ))}

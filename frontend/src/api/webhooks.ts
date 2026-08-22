@@ -3,7 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { PaginatedResponse, CreateWebhookInput, CreateWebhookInput as WebhookCreateInput } from '../types/api';
+import type { PaginatedResponse, CreateWebhookInput } from '../types/api';
 
 export const webhookKeys = {
   all: ['webhooks'] as const,

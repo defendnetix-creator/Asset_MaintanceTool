@@ -4,22 +4,23 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, Download, Users, 
-  ChevronLeft, ChevronRight, Loader2, MoreHorizontal, Mail, Shield, Key, UserX
+  Plus, Search, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, Shield, Key, UserX, Trash2, User
 } from 'lucide-react';
+import type { SelectOption } from '../components/ui/Select';
+import type { UserRole } from '../types/api';
 import { useUsers, useInviteUser, useDeleteUser, useResetUserPassword, useResetUserMfa, useRevokeUserSessions } from '../api/users';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { cn, formatDate, getStatusColor } from '../utils/helpers';
+import { Card, CardContent } from '../components/ui/Card';
+import { formatDateTime, getStatusColor } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/Dialog';
 
-const roleOptions = [
+const roleOptions: SelectOption[] = [
   { value: '', label: 'All Roles' },
   { value: 'IT_ASSET_MANAGER', label: 'IT Asset Manager' },
   { value: 'FIELD_TECHNICIAN', label: 'Field Technician' },
@@ -28,7 +29,9 @@ const roleOptions = [
   { value: 'READ_ONLY', label: 'Read Only' },
 ];
 
-const statusOptions = [
+type UserRoleOption = 'IT_ASSET_MANAGER' | 'FIELD_TECHNICIAN' | 'EMPLOYEE' | 'AUDITOR' | 'READ_ONLY';
+
+const statusOptions: SelectOption[] = [
   { value: '', label: 'All Statuses' },
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
@@ -38,10 +41,9 @@ const statusOptions = [
 
 export function UsersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
+  const toast = useToast();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: '', first_name: '', last_name: '', role: 'EMPLOYEE' });
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [inviteForm, setInviteForm] = useState({ email: '', first_name: '', last_name: '', role: 'EMPLOYEE' as UserRoleOption });
 
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '25', 10);
@@ -89,10 +91,15 @@ export function UsersPage() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await inviteUser.mutateAsync(inviteForm);
+      // Cast the role to UserRole since CreateUserInput requires a valid UserRole (not empty string)
+      const inviteData = { 
+        ...inviteForm, 
+        role: inviteForm.role as UserRole 
+      };
+      await inviteUser.mutateAsync(inviteData);
       toast.success('User invited successfully');
       setInviteDialogOpen(false);
-      setInviteForm({ email: '', first_name: '', last_name: '', role: 'EMPLOYEE' });
+      setInviteForm({ email: '', first_name: '', last_name: '', role: 'EMPLOYEE' as UserRoleOption });
       refetch();
     } catch (err) {
       toast.error('Failed to invite user');
@@ -151,7 +158,7 @@ export function UsersPage() {
     return (
       <div className="card p-6 text-center">
         <p className="text-destructive">Failed to load users</p>
-        <button onClick={refetch} className="btn-primary mt-4">Retry</button>
+        <button onClick={() => refetch()} className="btn-primary mt-4">Retry</button>
       </div>
     );
   }
@@ -191,7 +198,7 @@ export function UsersPage() {
             </div>
           ) : data?.data.length === 0 ? (
             <div className="p-12 text-center">
-              <Users className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+              <User className="h-12 w-12 text-muted-foreground/50 mx-auto" />
               <h3 className="mt-4 text-lg font-medium">No users found</h3>
               <p className="text-muted-foreground mt-1">Invite your first team member</p>
               <Button onClick={openInviteDialog} className="mt-4">
@@ -220,7 +227,6 @@ export function UsersPage() {
                       <TableCell>
                         <div>
                           <p className="font-medium">{user.first_name} {user.last_name}</p>
-                          {user.group && <p className="text-xs text-muted-foreground">{user.group.name}</p>}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -275,7 +281,9 @@ export function UsersPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
+              {/* Pagination */}
               <div className="flex items-center justify-between border-t border-border p-4">
                 <div className="text-sm text-muted-foreground">
                   Showing {(page - 1) * limit + 1} to {Math.min(page * limit, data?.pagination.total || 0)} of {data?.pagination.total || 0} users
@@ -311,7 +319,7 @@ export function UsersPage() {
               <Input label="Email" type="email" value={inviteForm.email} onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})} required />
               <Select 
                 value={inviteForm.role} 
-                onValueChange={(v) => setInviteForm({...inviteForm, role: v})} 
+                onValueChange={(v) => setInviteForm({...inviteForm, role: v as UserRoleOption})} 
                 options={roleOptions.filter(r => r.value)} 
                 placeholder="Select role"
               />

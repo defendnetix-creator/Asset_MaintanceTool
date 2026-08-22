@@ -4,8 +4,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Play, CheckCircle2, Download, Loader2, ScanBarcode, 
-  Camera, AlertTriangle, Check, X, Package, MapPin
+  Play, CheckCircle2, Download, ScanBarcode, 
+  Camera, AlertTriangle, Check, X, Package
 } from 'lucide-react';
 import { useAudit, useStartAudit, useCompleteAudit, useSubmitScan, useReconcileDiscrepancy } from '../api/audits';
 import { Button } from '../components/ui/Button';
@@ -13,23 +13,21 @@ import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
-import { cn, formatDate, getStatusColor } from '../utils/helpers';
+import { formatDate, formatDateTime, getStatusColor } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
 
 const itemStatusOptions = [
-  { value: 'FOUND', label: 'Found' },
-  { value: 'MISSING', label: 'Missing' },
-  { value: 'MISMATCHED', label: 'Mismatched' },
-  { value: 'DAMAGED', label: 'Damaged' },
+  { value: 'FOUND' as const, label: 'Found' },
+  { value: 'MISSING' as const, label: 'Missing' },
+  { value: 'MISMATCHED' as const, label: 'Mismatched' },
+  { value: 'DAMAGED' as const, label: 'Damaged' },
 ];
 
 export function AuditDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
-  const [scanning, setScanning] = useState(false);
   const [scanInput, setScanInput] = useState('');
 
   const { data: audit, isLoading, error, refetch } = useAudit(id!);
@@ -325,8 +323,8 @@ export function AuditDetailPage() {
                     <TableBody>
                       {audit.items.map(item => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-mono font-medium">{item.asset.asset_tag}</TableCell>
-                          <TableCell>{item.asset.make || ''} {item.asset.model || ''}</TableCell>
+                          <TableCell className="font-mono font-medium">{item.asset?.asset_tag || '—'}</TableCell>
+                          <TableCell>{item.asset?.make || ''} {item.asset?.model || ''}</TableCell>
                           <TableCell>{item.expected_location?.name || '—'}</TableCell>
                           <TableCell>{item.scanned_location?.name || '—'}</TableCell>
                           <TableCell>
@@ -375,7 +373,7 @@ export function AuditDetailPage() {
                     <TableBody>
                       {audit.discrepancies.map(disc => (
                         <TableRow key={disc.id}>
-                          <TableCell className="font-mono font-medium">{disc.asset.asset_tag}</TableCell>
+                          <TableCell className="font-mono font-medium">{disc.asset?.asset_tag || '—'}</TableCell>
                           <TableCell><Badge variant="outline">{disc.type}</Badge></TableCell>
                           <TableCell>{disc.expected_location?.name || '—'}</TableCell>
                           <TableCell>{disc.found_location?.name || '—'}</TableCell>
@@ -385,7 +383,8 @@ export function AuditDetailPage() {
                             {disc.status === 'OPEN' && (
                               <div className="flex items-center gap-2">
                                 <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'confirm_match')}>Confirm Match</Button>
-                                <Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'update_location')}>Update Location</Button>
+                                {/* Update Location action changed to mark_missing */}
+<Button variant="outline" size="sm" onClick={() => handleReconcile(disc.id, 'mark_missing')}>Mark Missing</Button>
                                 <Button variant="destructive" size="sm" onClick={() => handleReconcile(disc.id, 'ignore')}>Ignore</Button>
                               </div>
                             )}

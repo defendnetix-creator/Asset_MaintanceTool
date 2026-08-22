@@ -94,11 +94,10 @@ export function useBulkAssetOperation() {
 }
 
 // Export assets
-export function useExportAssets(filters: AssetFilters = {}) {
-  return useQuery({
-    queryKey: assetKeys.exports(),
-    queryFn: () => api.get('/assets/export', { ...filters, format: 'csv' }),
-    enabled: false, // Only fetch when manually triggered
+export function useExportAssets() {
+  return useMutation({
+    mutationFn: (filters: AssetFilters = {}) => 
+      api.get('/assets/export', { ...filters, format: 'csv' }),
   });
 }
 

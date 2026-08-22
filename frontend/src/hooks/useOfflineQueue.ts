@@ -2,7 +2,7 @@
 // Offline queue and background sync hook
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useToast } from '../components/ui/useToast';
+import { useToast } from '@/components/ui/useToast';
 
 interface QueuedAction {
   id: string;
@@ -12,10 +12,6 @@ interface QueuedAction {
   retryCount: number;
   maxRetries: number;
 }
-
-const DB_NAME = 'assetmt-offline';
-const DB_VERSION = 1;
-const STORE_NAME = 'queue';
 
 export function useOfflineQueue() {
   const [queue, setQueue] = useState<QueuedAction[]>([]);
@@ -29,21 +25,23 @@ export function useOfflineQueue() {
   useEffect(() => {
     const request = indexedDB.open('assetmt-offline', 1);
     
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('queue')) {
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+      const db = (event.target as IDBOpenDBRequest)?.result;
+      if (db && !db.objectStoreNames.contains('queue')) {
         db.createObjectStore('queue', { keyPath: 'id' });
       }
     };
     
-    request.onsuccess = (event) => {
-      dbRef.current = event.target.result;
-      loadQueue();
+    request.onsuccess = (event: Event) => {
+      const target = event.target as IDBOpenDBRequest | null;
+      if (target?.result) {
+        dbRef.current = target.result;
+        loadQueue();
+      }
     };
     
     request.onerror = () => {
       console.error('Failed to open IndexedDB:', request.error);
-      // Fallback to localStorage
       loadQueueFromLocalStorage();
     };
   }, []);
@@ -94,9 +92,9 @@ export function useOfflineQueue() {
   }, []);
 
   // Update queue state and save
-  const setQueueAndSave = useCallback((newQueue: QueuedAction[] | ((prev: QueuedAction[]) => QueuedAction[])) => {
+  const setQueueAndSave = useCallback((updater: QueuedAction[] | ((prev: QueuedAction[]) => QueuedAction[])) => {
     setQueue(prev => {
-      const newQueue = typeof newQueue === 'function' ? newQueue(prev) : newQueue;
+      const newQueue = typeof updater === 'function' ? updater(prev) : updater;
       saveQueue(newQueue);
       return newQueue;
     });
@@ -195,7 +193,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ asset_tag: payload.tag, status: payload.status }),
-        );
+        });
 
       case 'audit':
         return fetch(`${baseUrl}/audits`, {
@@ -203,7 +201,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(payload),
-        );
+        });
 
       case 'asset':
         return fetch(`${baseUrl}/assets`, {
@@ -211,7 +209,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(payload.data),
-        );
+        });
 
       case 'maintenance':
         return fetch(`${baseUrl}/maintenance`, {
@@ -219,7 +217,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(payload.data),
-        );
+        });
 
       case 'custom':
         return fetch(payload.url, {
@@ -227,7 +225,7 @@ export function useOfflineQueue() {
           headers: { 'Content-Type': 'application/json', ...payload.headers },
           credentials: 'include',
           body: JSON.stringify(payload.body),
-        );
+        });
 
       default:
         throw new Error(`Unknown action type: ${type}`);
@@ -340,7 +338,6 @@ export function useDeferredMutation<TData, TVariables>(
     offlineMessage?: string;
   }
 ) {
-  const { isOnline, enqueue } = useOfflineQueue();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

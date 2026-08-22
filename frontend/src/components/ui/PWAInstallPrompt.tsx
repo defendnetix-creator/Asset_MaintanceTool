@@ -5,16 +5,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { Download, X, Monitor, Smartphone } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
 export function PWAInstallPrompt() {
-  const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
 
   // Check if app is already installed
   const checkInstalled = useCallback(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator as any).standalone;
     
     return isStandalone || isInStandaloneMode;
@@ -38,12 +42,12 @@ export function PWAInstallPrompt() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       // Show prompt after a short delay
-      setTimeout(() => setShowPrompt(true), 5000);
+      setTimeout(() => setShouldShowPrompt(true), 5000);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
-      setShowPrompt(false);
+      setShouldShowPrompt(false);
       setDeferredPrompt(null);
     };
 
@@ -64,19 +68,23 @@ export function PWAInstallPrompt() {
     
     if (outcome === 'accepted') {
       setIsInstalled(true);
-      setShowPrompt(false);
+      setShouldShowPrompt(false);
     }
     
     setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
-    setShowPrompt(false);
+    setShouldShowPrompt(false);
     setDismissed(true);
     localStorage.setItem('pwa-install-dismissed', 'true');
   };
 
   if (isInstalled || dismissed || !deferredPrompt) {
+    return null;
+  }
+
+  if (!shouldShowPrompt) {
     return null;
   }
 

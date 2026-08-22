@@ -1,8 +1,8 @@
 // frontend/src/components/ui/OfflineIndicator.tsx
 // Offline/Online indicator component with queue status
 
-import { useState, useEffect, useCallback } from 'react';
-import { WifiOff, Wifi, AlertTriangle, CheckCircle2, Sync } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, CheckCircle2, WifiOff } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 
@@ -24,8 +24,6 @@ export function OfflineIndicator() {
     };
 
     // Initial check
-    setIsOnline(navigator.onLine);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -49,7 +47,7 @@ export function OfflineIndicator() {
       <div className="flex items-center justify-center gap-2">
         {syncing ? (
           <>
-            <Sync className="h-4 w-4 animate-spin" />
+            <WifiOff className="h-4 w-4 animate-spin" />
             <span className="text-white font-medium">
               Syncing {queue.length} pending action{queue.length !== 1 ? 's' : ''}...
             </span>

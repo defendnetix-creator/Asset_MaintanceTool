@@ -24,7 +24,7 @@ export function NotFoundPage() {
               <RotateCcw className="h-4 w-4 mr-2" />
               Go Back
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline">
               <Link to="/">
                 <Home className="h-4 w-4 mr-2" />
                 Home

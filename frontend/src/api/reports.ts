@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { 
   Report, 
-  PaginatedResponse 
+  PaginatedResponse,
+  DashboardWidgets
 } from '../types/api';
 
 export const reportKeys = {
@@ -59,17 +60,17 @@ export function usePrebuiltReports() {
   });
 }
 
-export function useRunPrebuiltReport(reportId: string) {
+export function useRunPrebuiltReport() {
   return useMutation({
-    mutationFn: (data?: { parameters?: Record<string, any>; format?: 'json' | 'csv' | 'xlsx' }) => 
-      api.post<any>(`/reports/prebuilt/${reportId}/run`, data),
+    mutationFn: ({ id, data }: { id: string; data?: { parameters?: Record<string, any>; format?: 'json' | 'csv' | 'xlsx' } }) => 
+      api.post<any>(`/reports/prebuilt/${id}/run`, data),
   });
 }
 
 export function useDashboardWidgets() {
   return useQuery({
     queryKey: reportKeys.dashboard(),
-    queryFn: () => api.get('/reports/dashboard/widgets'),
+    queryFn: () => api.get<DashboardWidgets>('/reports/dashboard/widgets'),
     refetchInterval: 1000 * 60 * 5, // 5 minutes
   });
 }

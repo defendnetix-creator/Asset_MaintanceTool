@@ -3,10 +3,13 @@
 
 import { useState } from 'react';
 import { 
-  Settings, Palette, CreditCard, Shield, Database, 
-  Save, Loader2, CheckCircle2, Key, Globe, Users
+  Shield, 
+  Loader2, 
 } from 'lucide-react';
-import { useAdmin } from '../api/admin';
+import { 
+  useTenantSettings, useBranding, useSubscription, 
+  useAuditLog, useUpdateTenantSettings, useUpdateBranding, useVerifyAuditLog
+} from '../api/admin';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -15,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs'
 import { Switch } from '../components/ui/Switch';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
-import { cn } from '../utils/helpers';
+import { cn, formatDate, formatDateTime } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { useAuth } from '../hooks/useAuth';
 
@@ -35,7 +38,7 @@ const mfaMethodOptions = [
 
 export function AdminPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
@@ -43,7 +46,7 @@ export function AdminPage() {
   const { data: settings, refetch: refetchSettings } = useTenantSettings();
   const { data: branding, refetch: refetchBranding } = useBranding();
   const { data: subscription } = useSubscription();
-  const { data: auditLogs, refetch: refetchAuditLogs } = useAuditLog({ page: 1, limit: 50 });
+  const { data: auditLogs } = useAuditLog({ page: 1, limit: 50 });
   const updateSettings = useUpdateTenantSettings();
   const updateBranding = useUpdateBranding();
   const verifyAuditLog = useVerifyAuditLog();
@@ -273,7 +276,7 @@ export function AdminPage() {
                         if (e.target.checked) {
                           setSettingsForm({...settingsForm, mfa_methods: [...methods, method.value]});
                         } else {
-                          setSettingsForm({...settingsForm, mfa_methods: methods.filter(m => m !== method.value)});
+                          setSettingsForm({...settingsForm, mfa_methods: methods.filter((m: string) => m !== method.value)});
                         }
                       }} className="h-4 w-4" />
                       <span>{method.label}</span>

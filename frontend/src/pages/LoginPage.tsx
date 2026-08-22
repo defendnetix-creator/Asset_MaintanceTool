@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Box, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Box, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/useToast';
 import { cn } from '../utils/helpers';

@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Box, RefreshCw, ClipboardCheck, BarChart2, FileText, 
-  Settings, Users, Menu, X, ChevronLeft, ChevronRight, Bell, 
-  Sun, Moon, Monitor, LogOut, User, Search, HelpCircle
+  Settings, Users, Menu, ChevronLeft, ChevronRight, Bell, 
+  Sun, Moon, Monitor, LogOut, User, Search
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -32,8 +32,8 @@ const adminNavigation = [
 
 export function Layout() {
   const { user, logout } = useAuth();
-  const { theme, resolvedTheme, toggleTheme } = useTheme();
-  const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
+  const toast = useToast();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,7 +48,7 @@ export function Layout() {
     try {
       await logout();
       toast.success('Logged out successfully');
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to logout');
     }
   };

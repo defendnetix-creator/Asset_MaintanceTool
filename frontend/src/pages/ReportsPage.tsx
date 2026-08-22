@@ -3,18 +3,16 @@
 
 import { useState } from 'react';
 import { 
-  Download, BarChart2, FileText, Plus, Search, Filter, 
-  ChevronLeft, ChevronRight, Loader2, MoreHorizontal, Calendar, Clock
+  FileText, Plus, Calendar, TrendingUp, MoreHorizontal
 } from 'lucide-react';
 import { useReports, useRunPrebuiltReport, useDashboardWidgets } from '../api/reports';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
-import { cn, formatDate } from '../utils/helpers';
+import { cn, formatDateTime } from '../utils/helpers';
 import { useToast } from '../components/ui/useToast';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/DropdownMenu';
 
@@ -35,10 +33,41 @@ const formatOptions = [
 ];
 
 export function ReportsPage() {
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('prebuilt');
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [format, setFormat] = useState<'json' | 'csv' | 'xlsx'>('csv');
+
+  // KPI cards config (reused from Dashboard)
+  const kpiCards = [
+    { 
+      label: 'Total Assets', 
+      icon: FileText, 
+      color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+      trendIcon: TrendingUp,
+      trendColor: 'text-green-600',
+    },
+    { 
+      label: 'Assigned', 
+      icon: FileText, 
+      color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+      trendIcon: TrendingUp,
+      trendColor: 'text-amber-600',
+    },
+    { 
+      label: 'In Repair', 
+      icon: FileText, 
+      color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+      trendIcon: TrendingUp,
+      trendColor: 'text-red-600',
+    },
+    { 
+      label: 'Overdue Checkouts', 
+      icon: FileText, 
+      color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+      trendIcon: TrendingUp,
+      trendColor: 'text-red-600',
+    },
+  ];
 
   const { data: reports } = useReports();
   const { data: dashboard } = useDashboardWidgets();
@@ -67,7 +96,6 @@ export function ReportsPage() {
   ];
 
   const handleRunReport = async (reportId: string) => {
-    setSelectedReport(reportId);
     try {
       const data = await runPrebuiltReport.mutateAsync({ 
         id: reportId, 
@@ -88,8 +116,6 @@ export function ReportsPage() {
       toast.success('Report generated successfully');
     } catch (err) {
       toast.error('Failed to generate report');
-    } finally {
-      setSelectedReport(null);
     }
   };
 
@@ -111,18 +137,29 @@ export function ReportsPage() {
 
       {/* KPI Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {dashboard?.kpis?.slice(0, 4).map((kpi, index) => (
-          <Card key={kpi.label}>
-            <CardContent className="p-6">
-              <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
-              <p className="text-3xl font-bold mt-1">{kpi.value?.toLocaleString() || 0}</p>
-              <p className={cn('text-xs mt-1 flex items-center gap-1', kpi.color === 'green' ? 'text-green-600' : kpi.color === 'red' ? 'text-red-600' : kpi.color === 'amber' ? 'text-amber-600' : 'text-blue-600')}>
-                <TrendingUp className="h-3 w-3" />
-                {kpi.trend}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {dashboard?.kpis?.slice(0, 4).map((kpi, index) => {
+          const config = kpiCards[index];
+          const Icon = config.icon;
+          return (
+            <Card key={kpi.label}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
+                    <p className="text-3xl font-bold mt-1">{kpi.value?.toLocaleString() || 0}</p>
+                    <p className={cn('text-xs mt-1 flex items-center gap-1', config.trendColor)}>
+                      <TrendingUp className="h-3 w-3" />
+                      {kpi.trend}
+                    </p>
+                  </div>
+                  <div className={cn('p-3 rounded-xl', config.color)}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -156,12 +193,9 @@ export function ReportsPage() {
                           <Button 
                             size="sm" 
                             onClick={() => handleRunReport(report.id)} 
-                            disabled={selectedReport === report.id}
                             className="flex-1"
                           >
-                            {selectedReport === report.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                            ) : 'Run'}
+                            Run
                           </Button>
                         </div>
                       </div>

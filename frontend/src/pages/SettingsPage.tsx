@@ -3,8 +3,7 @@
 
 import { useState } from 'react';
 import { 
-  User, Bell, Shield, Palette, Globe, Database, 
-  Save, Loader2, CheckCircle2
+  Loader2, Sun, Monitor, Moon
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
@@ -51,7 +50,7 @@ const languageOptions = [
 
 export function SettingsPage() {
   const { user, updateProfile, changePassword } = useAuth();
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -208,7 +207,7 @@ export function SettingsPage() {
                     <p className="text-sm text-muted-foreground">Use an authenticator app like Google Authenticator or Authy</p>
                   </div>
                   {user?.mfa_enabled ? (
-                    <Badge variant="success">Enabled</Badge>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Enabled</span>
                   ) : (
                     <Button variant="outline">Enable</Button>
                   )}

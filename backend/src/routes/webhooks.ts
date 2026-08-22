@@ -6,6 +6,47 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import crypto from 'crypto';
 
+// Type definitions for route parameters
+interface WebhookParams {
+  id: string;
+}
+
+interface WebhookQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+interface WebhookBody {
+  name: string;
+  url: string;
+  events: string[];
+  retry_policy?: {
+    max_attempts?: number;
+    backoff?: 'exponential' | 'fixed';
+    delay?: number;
+  };
+  timeout_ms?: number;
+}
+
+interface WebhookUpdateBody {
+  name?: string;
+  url?: string;
+  events?: string[];
+  is_active?: boolean;
+  retry_policy?: {
+    max_attempts?: number;
+    backoff?: 'exponential' | 'fixed';
+    delay?: number;
+  };
+  timeout_ms?: number;
+}
+
+interface TestWebhookBody {
+  event: string;
+  payload?: any;
+}
+
 const webhookListItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -147,7 +188,7 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // List webhooks
   api.get('/', listWebhooksSchema, async (request) => {
-    const { page, limit, status } = request.query as { page: number; limit: number; status?: string };
+    const { page, limit, status } = request.query as WebhookQuery;
     const tenantId = request.tenantId!;
 
     const where: any = { tenant_id: tenantId };
@@ -168,8 +209,9 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // Get webhook
   api.get('/:id', getWebhookSchema, async (request, reply) => {
+    const { id } = request.params as WebhookParams;
     const webhook = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: request.tenantId! },
+      where: { id, tenant_id: request.tenantId! },
     });
 
     if (!webhook) {
@@ -202,17 +244,18 @@ export async function webhookRoutes(app: FastifyInstance) {
   // Update webhook
   api.put('/:id', updateWebhookSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
+    const { id } = request.params as WebhookParams;
 
     const existing = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: tenantId },
+      where: { id, tenant_id: tenantId },
     });
     if (!existing) {
       return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     const updated = await app.prisma.webhook.update({
-      where: { id: request.params.id },
-      data: request.body,
+      where: { id },
+      data: request.body as WebhookUpdateBody,
     });
 
     return updated;
@@ -221,16 +264,17 @@ export async function webhookRoutes(app: FastifyInstance) {
   // Delete webhook
   api.delete('/:id', deleteWebhookSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
+    const { id } = request.params as WebhookParams;
 
     const existing = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: tenantId },
+      where: { id, tenant_id: tenantId },
     });
     if (!existing) {
       return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     await app.prisma.webhook.delete({
-      where: { id: request.params.id },
+      where: { id },
     });
 
     return { message: 'Webhook deleted' };
@@ -239,16 +283,17 @@ export async function webhookRoutes(app: FastifyInstance) {
   // Test webhook
   api.post('/:id/test', testWebhookSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
+    const { id } = request.params as WebhookParams;
 
     const webhook = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: tenantId },
+      where: { id, tenant_id: tenantId },
     });
     if (!webhook) {
       return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
     const startTime = Date.now();
-    const { event, payload } = request.body as { event: string; payload?: any };
+    const { event, payload } = request.body as TestWebhookBody;
 
     try {
       const response = await fetch(webhook.url, {
@@ -300,16 +345,17 @@ export async function webhookRoutes(app: FastifyInstance) {
   // List webhook deliveries
   api.get('/:id/deliveries', listWebhookDeliveriesSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
+    const { id } = request.params as WebhookParams;
 
     const webhook = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: tenantId },
+      where: { id, tenant_id: tenantId },
     });
     if (!webhook) {
       return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
     }
 
-    const { page, limit, status } = request.query as { page: number; limit: number; status?: string };
-    const where: any = { webhook_id: request.params.id };
+    const { page, limit, status } = request.query as WebhookQuery;
+    const where: any = { webhook_id: id };
     if (status) where.status = status;
 
     const [deliveries, total] = await Promise.all([
@@ -328,9 +374,10 @@ export async function webhookRoutes(app: FastifyInstance) {
   // Regenerate secret
   api.post('/:id/regenerate-secret', regenerateSecretSchema, async (request, reply) => {
     const tenantId = request.tenantId!;
+    const { id } = request.params as WebhookParams;
 
     const webhook = await app.prisma.webhook.findFirst({
-      where: { id: request.params.id, tenant_id: tenantId },
+      where: { id, tenant_id: tenantId },
     });
     if (!webhook) {
       return reply.status(404).send({ error: 'Webhook not found', code: 'NOT_FOUND' });
@@ -339,7 +386,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     const secret = crypto.randomBytes(32).toString('hex');
 
     const updated = await app.prisma.webhook.update({
-      where: { id: request.params.id },
+      where: { id },
       data: { secret },
     });
 

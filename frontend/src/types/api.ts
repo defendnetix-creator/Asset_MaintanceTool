@@ -21,6 +21,25 @@ export interface ApiError {
   }>;
 }
 
+// Dashboard/Widget types
+export interface DashboardKPI {
+  label: string;
+  value: number;
+  trend: string;
+}
+
+export interface DashboardChartData {
+  assetsByStatus?: Array<{ status: string; count: number }>;
+  assetsByCategory?: Array<{ category: string; count: number }>;
+  workOrdersByStatus?: Array<{ status: string; count: number }>;
+  auditTrends?: Array<{ date: string; scanned: number; found: number; missing: number }>;
+}
+
+export interface DashboardWidgets {
+  kpis: DashboardKPI[];
+  charts: DashboardChartData;
+}
+
 export interface Tenant {
   id: string;
   name: string;
