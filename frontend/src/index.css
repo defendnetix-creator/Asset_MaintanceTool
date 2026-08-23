@@ -70,31 +70,29 @@
   }
 
   /* Scrollbar styling */
-  /* anti: Fix - Tailwind CSS v3.3+ does not allow @apply with custom color utility classes
-     (e.g. bg-muted, bg-muted-foreground/30) inside @layer base because base styles are
-     processed before utility classes are resolved. Replaced @apply directives with
-     direct hsl(var(--...)) CSS variable values to resolve the PostCSS build error:
-     "The `bg-muted` class does not exist. If `bg-muted` is a custom class,
-     make sure it is defined within a `@layer` directive." */
-  ::-webkit-scrollbar {
-    @apply w-2 h-2;
-  }
+    /* anti: Fix - Tailwind CSS v3.3+ does not allow @apply with custom color utility classes
+       (e.g. bg-muted, bg-muted-foreground/30) inside @layer base because base styles are
+       processed before utility classes are resolved. Replaced @apply directives with
+       direct hsl(var(--...)) CSS variable values to resolve the PostCSS build error:
+       "The \`bg-muted\` class does not exist. If \`bg-muted\` is a custom class,
+       make sure it is defined within a \`@layer\` directive." */
+    ::-webkit-scrollbar {
+      width: 0.5rem;
+      height: 0.5rem;
+    }
   
-  ::-webkit-scrollbar-track {
-    /* anti: was `@apply bg-muted;` — replaced with raw CSS var to fix PostCSS error */
-    background-color: hsl(var(--muted));
-  }
+    ::-webkit-scrollbar-track {
+      background-color: hsl(var(--muted));
+    }
   
-  ::-webkit-scrollbar-thumb {
-    /* anti: was `@apply bg-muted-foreground/30 rounded-full;` — replaced with raw CSS vars */
-    background-color: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 9999px;
-  }
+    ::-webkit-scrollbar-thumb {
+      background-color: hsl(var(--muted-foreground) / 0.3);
+      border-radius: 9999px;
+    }
   
-  ::-webkit-scrollbar-thumb:hover {
-    /* anti: was `@apply bg-muted-foreground/50;` — replaced with raw CSS var */
-    background-color: hsl(var(--muted-foreground) / 0.5);
-  }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: hsl(var(--muted-foreground) / 0.5);
+    }
 
   /* Selection */
   ::selection {
