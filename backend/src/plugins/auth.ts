@@ -17,19 +17,21 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export const authPlugin: FastifyPluginAsync = async (app) => {
   // Public route check
-  function isPublicRoute(url: string): boolean {
-    const publicRoutes = [
-      '/health',
-      '/ready',
-      '/api/auth/login',
-      '/api/auth/register',
-      '/api/auth/refresh',
-      '/api/auth/forgot-password',
-      '/api/auth/reset-password',
-      '/api/auth/verify-email',
-    ];
-    return publicRoutes.some(route => url.startsWith(route));
-  }
+    function isPublicRoute(url: string): boolean {
+      const publicRoutes = [
+        '/health',
+        '/ready',
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/refresh',
+        '/api/auth/forgot-password',
+        '/api/auth/reset-password',
+        '/api/auth/verify-email',
+        '/api/onboarding/check-slug',
+        '/api/onboarding/register',
+      ];
+      return publicRoutes.some(route => url.startsWith(route));
+    }
 
   // Auth hook - try Authorization header first, then cookie
   app.addHook('preHandler', async (request, reply) => {

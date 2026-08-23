@@ -16,6 +16,7 @@ import { metricsPlugin } from './plugins/metrics.js';
 import { tracingPlugin } from './plugins/tracing.js';
 import { uploadPlugin } from './plugins/upload.js';
 import { authRoutes } from './routes/auth.js';
+import { onboardingRoutes } from './routes/onboarding.js';
 import { assetRoutes } from './routes/assets.js';
 import { auditRoutes } from './routes/audits.js';
 import { maintenanceRoutes } from './routes/maintenance.js';
@@ -154,7 +155,8 @@ async function main() {
   await app.register(tracingPlugin);
 
   // Register all routes with app.register() for proper prefix handling
-  await app.register(authRoutes, { prefix: '/api/auth' });
+    await app.register(onboardingRoutes, { prefix: '/api/onboarding' });
+    await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(assetRoutes, { prefix: '/api/assets' });
   await app.register(auditRoutes, { prefix: '/api/audits' });
   await app.register(maintenanceRoutes, { prefix: '/api/maintenance' });
