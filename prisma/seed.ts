@@ -2,9 +2,13 @@
 // Run with: npx prisma db seed
 
 import { PrismaClient, UserRole, UserStatus, AssetStatus, AuditStatus } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 
 const prisma = new PrismaClient();
+
+async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
+}
 
 async function main() {
   console.log('🌱 Starting database seed...');
@@ -12,7 +16,36 @@ async function main() {
   // Create default tenant
   const tenant = await prisma.tenant.upsert({
     where: { slug: 'demo' },
-    update: {},
+    update: {
+      name: 'Demo Organization',
+      domain: 'demo.assetmt.local',
+      timezone: 'UTC',
+      currency: 'USD',
+      dateFormat: 'MM/DD/YYYY',
+      timeFormat: '12h',
+      plan: 'ENTERPRISE',
+      maxAssets: 10000,
+      maxUsers: 100,
+      maxStorageGb: 100,
+      settings: {
+        assetTagPrefix: 'AST',
+        assetTagFormat: '{prefix}-{number:06d}',
+        passwordMinLength: 12,
+        passwordRequireUpper: true,
+        passwordRequireLower: true,
+        passwordRequireNumber: true,
+        passwordRequireSymbol: true,
+        passwordMaxAgeDays: 90,
+        passwordHistoryCount: 5,
+        mfaRequiredForAdmins: true,
+        mfaRequiredForAll: false,
+        sessionAbsoluteTimeoutMinutes: 15,
+        sessionIdleTimeoutMinutes: 5,
+        maxConcurrentSessions: 5,
+        auditLogRetentionDays: 730,
+        assetHistoryRetentionDays: 2555,
+      },
+    },
     create: {
       name: 'Demo Organization',
       slug: 'demo',
@@ -45,7 +78,6 @@ async function main() {
       },
     },
   });
-
   console.log(`✅ Tenant created: ${tenant.name} (${tenant.id})`);
 
   // Create default roles if they don't exist
@@ -68,28 +100,28 @@ async function main() {
   }
   console.log('✅ Roles created');
 
-  // Create default admin user
-  const passwordHash = await bcrypt.hash('Admin@123456', 12);
-  
+  // Create default admin user - with update to repair demo login on re-runs
+  const passwordHash = await hashPassword('Admin@123');
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      passwordHash,
-      firstName: 'System',
-      lastName: 'Administrator',
+    update: {
+      password_hash: passwordHash,
+      first_name: 'System',
+      last_name: 'Administrator',
       role: UserRole.SUPER_ADMIN,
       status: UserStatus.ACTIVE,
-      tenantId: tenant.id,
-      mfaEnabled: false,
-      timezone: 'UTC',
-      dateFormat: 'MM/DD/YYYY',
-      timeFormat: '12h',
-      language: 'en',
+      tenant_id: tenant.id,
+    },
+    create: {
+      email: 'admin@example.com',
+      password_hash: passwordHash,
+      first_name: 'System',
+      last_name: 'Administrator',
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+      tenant_id: tenant.id,
     },
   });
-
   console.log(`✅ Admin user created: ${adminUser.email} (${adminUser.id})`);
 
   // Create sample sites
