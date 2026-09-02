@@ -743,43 +743,45 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // Get current user
-  app.get('/me', { schema: { response: { 200: meResponse, 404: errorResponse } } }, async (request, reply) => {
-    const user = request.user as AuthUser | undefined;
-    if (!user) {
-      return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
-    }
+    app.get('/me', { schema: { response: { 200: meResponse, 404: errorResponse } } }, async (request, reply) => {
+      const user = request.user as AuthUser | undefined;
+      if (!user) {
+        return reply.status(401).send({ error: 'Unauthorized', code: 'NO_ACCESS_TOKEN' });
+      }
 
-    const fullUser = await app.prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        tenant_id: true,
-        mfa_enabled: true,
-        avatar_url: true,
-        timezone: true,
-      },
+      const fullUser = await app.prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          role: true,
+          tenant_id: true,
+          mfa_enabled: true,
+          avatar_url: true,
+          timezone: true,
+        },
+      });
+
+      if (!fullUser) {
+        return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
+      }
+
+      return {
+        user: {
+          id: fullUser.id,
+          email: fullUser.email,
+          firstName: fullUser.first_name,
+          lastName: fullUser.last_name,
+          role: fullUser.role,
+          tenantId: fullUser.tenant_id,
+          mfaEnabled: fullUser.mfa_enabled,
+          avatarUrl: fullUser.avatar_url,
+          timezone: fullUser.timezone,
+        },
+      };
     });
-
-    if (!fullUser) {
-      return reply.status(404).send({ error: 'User not found', code: 'NOT_FOUND' });
-    }
-
-    return {
-      id: fullUser.id,
-      email: fullUser.email,
-      firstName: fullUser.first_name,
-      lastName: fullUser.last_name,
-      role: fullUser.role,
-      tenantId: fullUser.tenant_id,
-      mfaEnabled: fullUser.mfa_enabled,
-      avatarUrl: fullUser.avatar_url,
-      timezone: fullUser.timezone,
-    };
-  });
 
   // Update profile
   app.patch('/me', { schema: updateProfileSchema }, async (request, reply) => {
